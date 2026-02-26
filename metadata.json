@@ -1,0 +1,7 @@
+{
+  "name": "GEO Estate Agent",
+  "description": "A Clean Tech AI-powered real estate listing generator optimized for Generative Engine Optimization (GEO).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
