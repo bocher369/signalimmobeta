@@ -334,15 +334,19 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         setLastInstruction(description);
     }
 
-    // Always recreate the AI client to ensure fresh API key usage
-    const apiKey = process.env.GEMINI_API_KEY;
-    console.log("DEBUG: apiKey value is:", apiKey);
-    if (!apiKey) {
-        console.error("API Key is missing");
+    // 1. Obtenir la clé API dynamiquement via le mécanisme de la plateforme
+    const win = window as any;
+    if (!win.aistudio || !(await win.aistudio.hasSelectedApiKey())) {
+        console.error("API Key not selected");
         setHasApiKey(false);
+        // Ouvre la boîte de dialogue si nécessaire
+        if (win.aistudio) await win.aistudio.openSelectKey();
         return;
     }
-    const ai = new GoogleGenAI({ apiKey });
+
+    // Le SDK récupère automatiquement la clé sélectionnée par l'utilisateur
+    // via le mécanisme de la plateforme, pas besoin de process.env ici.
+    const ai = new GoogleGenAI({});
     
     setIsProcessing(true);
     setProgress(5); // Start progress
