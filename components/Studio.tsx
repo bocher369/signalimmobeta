@@ -510,7 +510,38 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
   };
 
   const handlePrint = () => {
-    window.print();
+    const contentToPrint = activeChannel === 'score' ? '' : generatedContent[activeChannel];
+    
+    if (!contentToPrint || typeof contentToPrint !== 'string') {
+        return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Impression Annonce</title>
+                    <style>
+                        body {
+                            font-family: 'Arial', sans-serif;
+                            line-height: 1.6;
+                            padding: 40px;
+                            white-space: pre-wrap;
+                            color: #333;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                    </style>
+                </head>
+                <body>${contentToPrint}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        // printWindow.close(); // Optional: let the user close it to ensure print dialog isn't cut off
+    }
   };
 
   const toggleRecording = () => {

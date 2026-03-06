@@ -36,7 +36,7 @@ export interface Property {
   reportContent?: string;
 }
 
-export type ViewState = 'dashboard' | 'studio' | 'history' | 'intelligence';
+export type ViewState = 'dashboard' | 'studio' | 'history' | 'intelligence' | 'signin' | 'signup';
 
 export type OutputChannel = 'portal' | 'social' | 'email' | 'score';
 

@@ -1,15 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './src/supabaseClient';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Studio } from './components/Studio';
 import { History } from './components/History';
 import { TerritorialIntelligence } from './components/TerritorialIntelligence';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SignIn } from './components/SignIn';
+import { SignUp } from './components/SignUp';
 import { ViewState, Property } from './types';
 
 function App() {
-  const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewState>('signin');
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        setCurrentView('dashboard');
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        // If logged out, go to signin (unless already on signup)
+        setCurrentView((prev) => (prev === 'signup' ? 'signup' : 'signin'));
+      } else {
+        // If logged in, go to dashboard (if currently on auth pages)
+        setCurrentView((prev) => (prev === 'signin' || prev === 'signup' ? 'dashboard' : prev));
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Initialisation de l'état history avec localStorage s'il existe
   const [history, setHistory] = useState<Property[]>(() => {
     try {
@@ -55,6 +87,14 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Layout currentView={currentView === 'intelligence' ? 'dashboard' : currentView} onNavigate={handleNavigate}>
@@ -85,6 +125,12 @@ function App() {
               history={history}
               onSelectProperty={handleSelectProperty}
           />
+        )}
+        {currentView === 'signin' && (
+          <SignIn onNavigate={handleNavigate} />
+        )}
+        {currentView === 'signup' && (
+          <SignUp onNavigate={handleNavigate} />
         )}
       </Layout>
     </ErrorBoundary>

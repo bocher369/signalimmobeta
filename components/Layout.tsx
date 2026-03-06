@@ -9,6 +9,16 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate }) => {
+  if (currentView === 'signin' || currentView === 'signup') {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F9FAFB] text-gray-800 font-sans selection:bg-brand-100">
+        <main className="flex-1 flex items-center justify-center p-4">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#F9FAFB] text-gray-800 font-sans selection:bg-brand-100">
       
@@ -48,8 +58,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             <HistoryIcon size={24} strokeWidth={currentView === 'history' ? 2.5 : 2} />
           </button>
 
-          <button className="p-3 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all hidden md:block">
-            <User size={24} />
+          <button 
+            onClick={() => onNavigate('signin')}
+            className={`p-3 rounded-xl transition-all duration-300 ${currentView === 'signin' ? 'bg-brand-50 text-brand-600 shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'} hidden md:block`}
+            title="Connexion"
+          >
+            <User size={24} strokeWidth={currentView === 'signin' ? 2.5 : 2} />
           </button>
         </div>
 
