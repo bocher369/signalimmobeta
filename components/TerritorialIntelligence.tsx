@@ -261,13 +261,19 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const handleGenerateReport = async () => {
     if (!address && files.length === 0) return;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        console.error("API Key is missing");
+    // 1. Obtenir la clé API dynamiquement via le mécanisme de la plateforme
+    const win = window as any;
+    if (!win.aistudio || !(await win.aistudio.hasSelectedApiKey())) {
+        console.error("API Key not selected");
         setHasApiKey(false);
+        // Ouvre la boîte de dialogue si nécessaire
+        if (win.aistudio) await win.aistudio.openSelectKey();
         return;
     }
-    const ai = new GoogleGenAI({ apiKey });
+
+    // Le SDK récupère automatiquement la clé sélectionnée par l'utilisateur
+    // via le mécanisme de la plateforme, pas besoin de process.env ici.
+    const ai = new GoogleGenAI({});
     setIsProcessing(true);
     setReportResult('');
 
