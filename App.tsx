@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './src/supabaseClient';
+import { deleteFileFromSupabase } from './src/utils/storage';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Studio } from './components/Studio';

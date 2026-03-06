@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Sparkles, ArrowRight, TrendingUp, FileText, MapPin, Ghost } from 'lucide-react';
 import { Property } from '../types';
-import { getSignedUrl } from '../src/utils/storage';
 
 interface DashboardProps {
   onNavigateToStudio: () => void;
