@@ -5,8 +5,6 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { parse } from "marked";
 import { Property } from '../types';
-import { uploadFileToSupabase } from '../src/utils/storage';
-import { supabase } from '../src/supabaseClient';
 
 interface AddressFeature {
   geometry: {
@@ -263,23 +261,11 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const handleGenerateReport = async () => {
     if (!address && files.length === 0) return;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     setIsProcessing(true);
     setReportResult('');
 
     try {
-      // 1. Upload files to Supabase Storage (SEQUENTIAL FOR RELIABILITY)
-      const uploadedFilePaths: string[] = [];
-      for (const file of files) {
-          try {
-              const path = await uploadFileToSupabase(file, 'territorial', Date.now().toString());
-              uploadedFilePaths.push(path);
-          } catch (error) {
-              console.error('Failed to upload file:', file.name, error);
-              throw error;
-          }
-      }
-
       // Detection of specific types via text content
       const textContent = (specificInstructions + " " + address).toLowerCase();
       const isTerrain = textContent.includes('terrain');
@@ -299,7 +285,6 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
           zoningInfo = zoning;
       }
 
-      // ... (prompt construction)
       let promptText = `Rôle : Tu es un expert en Intelligence Territoriale, Urbanisme et analyse immobilière.
       Objectif : Rédiger un rapport complet, neutre et factuel sur le secteur de l'adresse suivante : ${address}.
       
@@ -396,7 +381,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       parts.push(...fileParts);
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite-preview',
+        model: 'gemini-3-flash-preview',
         contents: { parts },
         config: {
           tools: [{ googleSearch: {} }],
@@ -418,11 +403,15 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
         
         // Save to history
         if (onNewEntry) {
+            // Try to find an image file for thumbnail
+            const imageFile = files.find(f => f.type.startsWith('image/'));
+            const imagePreview = imageFile ? URL.createObjectURL(imageFile) : "";
+
             const newItem: Property = {
                 id: Date.now().toString(),
                 address: parsed.location || address || "Localisation du bien",
                 price: "Analyse Secteur", 
-                image: uploadedFilePaths[0] || "", // Store the first file path
+                image: imagePreview,
                 geoScore: 98,
                 date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
                 type: 'intelligence',
