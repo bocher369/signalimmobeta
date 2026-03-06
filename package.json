@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf dist && vite build",
+    "build": "rm -rf dist .vite && vite build",
     "preview": "vite preview",
     "start": "serve -s dist -l ${PORT:-8080}",
     "lint": "tsc --noEmit"
