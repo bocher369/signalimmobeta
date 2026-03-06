@@ -261,7 +261,13 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const handleGenerateReport = async () => {
     if (!address && files.length === 0) return;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("API Key is missing");
+        setHasApiKey(false);
+        return;
+    }
+    const ai = new GoogleGenAI({ apiKey });
     setIsProcessing(true);
     setReportResult('');
 

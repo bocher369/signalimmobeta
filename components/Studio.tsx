@@ -335,7 +335,13 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
     }
 
     // Always recreate the AI client to ensure fresh API key usage
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("API Key is missing");
+        setHasApiKey(false);
+        return;
+    }
+    const ai = new GoogleGenAI({ apiKey });
     
     setIsProcessing(true);
     setProgress(5); // Start progress
