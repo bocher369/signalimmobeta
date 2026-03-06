@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sun, Sparkles, ArrowRight, TrendingUp, FileText, MapPin, Ghost } from 'lucide-react';
 import { Property } from '../types';
+import { getSignedUrl } from '../src/utils/storage';
 
 interface DashboardProps {
   onNavigateToStudio: () => void;
@@ -8,9 +9,29 @@ interface DashboardProps {
   onNavigateToHistory: () => void;
   onSelectProperty: (property: Property) => void;
   history: Property[];
+  userFirstName?: string;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavigateToIntelligence, onNavigateToHistory, onSelectProperty, history }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavigateToIntelligence, onNavigateToHistory, onSelectProperty, history, userFirstName }) => {
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchSignedUrls = async () => {
+      const urls: Record<string, string> = {};
+      const itemsToFetch = history.slice(0, 3);
+      for (const item of itemsToFetch) {
+        if (item.image && !item.image.startsWith('blob:')) {
+          const url = await getSignedUrl(item.image);
+          if (url) urls[item.id] = url;
+        } else if (item.image) {
+            urls[item.id] = item.image;
+        }
+      }
+      setSignedUrls(urls);
+    };
+    fetchSignedUrls();
+  }, [history]);
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
@@ -18,14 +39,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavi
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-light text-gray-900 tracking-tight">
-            Bonjour, <span className="font-semibold">Alexandre</span>
+            Bonjour, <span className="font-semibold">{userFirstName || 'Utilisateur'}</span>
           </h1>
           <p className="text-gray-500 mt-2 text-lg font-light">
             Prêt à dominer les algorithmes aujourd'hui ?
           </p>
         </div>
       </header>
-
+      
       {/* Hero Actions */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Create New Card */}
@@ -112,7 +133,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavi
               >
                 <div className="relative h-48 overflow-hidden bg-gray-50">
                   
-                  {item.type === 'intelligence' ? (
+                  {signedUrls[item.id] ? (
+                    <img src={signedUrls[item.id]} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                  ) : item.type === 'intelligence' ? (
                     <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
                       <MapPin size={48} className="text-indigo-400 opacity-80" />
                     </div>

@@ -4,7 +4,7 @@ import { ViewState } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentView: ViewState;
+  currentView: any;
   onNavigate: (view: ViewState) => void;
 }
 

@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedContent, OutputChannel, ProcessingStep, Property } from '../types';
+import { uploadFileToSupabase } from '../src/utils/storage';
+import { supabase } from '../src/supabaseClient';
 
 // Tooltip Component
 const InfoTooltip = ({ text, align = 'center' }: { text: string, align?: 'center' | 'left' | 'right' }) => {
@@ -344,7 +346,19 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
     setSteps(INITIAL_STEPS.map(s => ({...s, completed: false})));
 
     try {
-        // 1. Prepare Content Parts
+        // 1. Upload files to Supabase Storage (SEQUENTIAL FOR RELIABILITY)
+        const uploadedFilePaths: string[] = [];
+        for (const file of files) {
+            try {
+                const path = await uploadFileToSupabase(file, 'studio', Date.now().toString());
+                uploadedFilePaths.push(path);
+            } catch (error) {
+                console.error('Failed to upload file:', file.name, error);
+                throw error; // Re-throw to be caught by the main catch block
+            }
+        }
+
+        // 2. Prepare Content Parts
         const parts: any[] = [];
         
         // Add text prompt with enhanced instruction prioritization
@@ -353,7 +367,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         
         // Treat description as high-priority instructions, especially if refining
         if (description) {
-            promptText += `\nNOTES ET INSTRUCTIONS SPÉCIFIQUES (PRIORITAIRES SUR TOUT LE RESTE): ${description}\n`;
+            promptText += `\nNOTES ET INSTRUCTIONS SPÉCIFIQUE (PRIORITAIRES SUR TOUT LE RESTE): ${description}\n`;
             promptText += `Prends en compte ces instructions pour adapter le ton, la longueur ou les détails de l'annonce.\n`;
         }
         
@@ -376,7 +390,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         const fileParts = await Promise.all(files.map(fileToPart));
         parts.push(...fileParts);
 
-        // 2. Start Animation Loop (Visual feedback)
+        // 3. Start Animation Loop (Visual feedback)
         let currentStep = 0;
         const interval = setInterval(() => {
             // Use cumulative logic (<=) to ensure previous steps are always marked completed
@@ -393,92 +407,67 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
             currentStep = Math.min(currentStep + 1, INITIAL_STEPS.length - 1);
         }, 800); // Accelerated from 1500 to 800ms for snappier feedback
 
-        // 3. Call Gemini API
+        // 4. Call Gemini API
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', 
+            model: 'gemini-3.1-flash-lite-preview', 
             contents: { parts },
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
                 thinkingConfig: { thinkingBudget: 0 }, // Disable thinking for max speed
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        metadata: {
-                            type: Type.OBJECT,
-                            properties: {
-                                price: { type: Type.STRING, description: "Prix du bien (ex: 388 500 €) ou 'Non communiqué'" },
-                                surface: { type: Type.STRING, description: "Surface (ex: 98 m2)" },
-                                rooms: { type: Type.STRING, description: "Nombre de pièces" },
-                                location: { type: Type.STRING, description: "Localisation du bien (Ville + Code Postal) extraite des documents ou de la description" }
-                            }
-                        },
-                        portal: { type: Type.STRING, description: "Contenu pour le portail immobilier (Fiche Maître) - Texte structuré avec sauts de ligne" },
-                        social: { type: Type.STRING, description: "Post pour les réseaux sociaux - Texte structuré avec sauts de ligne" },
-                        email: { type: Type.STRING, description: "Email pour client investisseur - Texte structuré avec sauts de ligne" },
-                        score: {
-                            type: Type.OBJECT,
-                            properties: {
-                                total: { type: Type.NUMBER, description: "Score global sur 100" },
-                                criteria: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        experience: { type: Type.NUMBER, description: "Score Expérience sur 100" },
-                                        expertise: { type: Type.NUMBER, description: "Score Expertise sur 100" },
-                                        authority: { type: Type.NUMBER, description: "Score Autorité sur 100" },
-                                        trust: { type: Type.NUMBER, description: "Score Confiance sur 100" }
-                                    }
-                                },
-                                tips: {
-                                    type: Type.ARRAY,
-                                    items: { type: Type.STRING },
-                                    description: "3 conseils pour améliorer le score"
-                                }
-                            }
-                        }
-                    },
-                    required: ["metadata", "portal", "social", "email", "score"]
-                }
+                responseMimeType: "application/json"
             }
         });
 
-        // 4. Handle Response
+        // 5. Handle Response
         clearInterval(interval);
         // Complete all steps visually
         setSteps(prev => prev.map(s => ({ ...s, completed: true })));
         setProgress(100);
         
         const resultText = response.text;
+        console.log("Response object:", response);
+        console.log("Response text:", resultText);
         if (resultText) {
-            const parsed = JSON.parse(resultText);
-            setGeneratedContent(parsed);
-            
-            // Add to history
-            if (onNewProperty) {
-              // Try to find an image file for the thumbnail from the uploaded files
-              const imageFile = files.find(f => f.type.startsWith('image/'));
-              
-              const imagePreview = imageFile 
-                ? URL.createObjectURL(imageFile) 
-                : ""; // No fallback image, will use icon instead
-              
-              onNewProperty({
-                id: Date.now().toString(),
-                address: parsed.metadata?.location || address || "Localisation du bien",
-                price: parsed.metadata?.price || "Prix sur demande",
-                image: imagePreview,
-                geoScore: parsed.score?.total || 94,
-                date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-                generatedContent: parsed,
-                metadata: parsed.metadata,
-                type: 'listing'
-              });
-            }
+            try {
+                // Extract JSON content even if wrapped in markdown or surrounded by extra text
+                // The AI is returning a malformed array [ { ... } ] ] ]
+                // We match the first array structure and ignore trailing garbage
+                const jsonMatch = resultText.match(/\[[\s\S]*?\]/);
+                const cleanJson = jsonMatch ? jsonMatch[0] : resultText;
+                
+                const parsedArray = JSON.parse(cleanJson);
+                // Take the first element if it's an array
+                const parsed = Array.isArray(parsedArray) ? parsedArray[0] : parsedArray;
+                
+                setGeneratedContent(parsed);
+                
+                // Add to history
+                if (onNewProperty) {
+                  onNewProperty({
+                    id: Date.now().toString(),
+                    address: parsed.metadata?.location || address || "Localisation du bien",
+                    price: parsed.metadata?.price || "Prix sur demande",
+                    image: uploadedFilePaths[0] || "", // Store the first file path
+                    geoScore: parsed.score?.total || 94,
+                    date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    generatedContent: parsed,
+                    metadata: parsed.metadata,
+                    type: 'listing'
+                  });
+                }
 
-            setTimeout(() => {
+                setTimeout(() => {
+                    setIsProcessing(false);
+                    setHasResult(true);
+                }, 500);
+            } catch (e) {
+                console.error("JSON parsing failed:", e);
+                console.error("Result text that failed to parse:", resultText);
+                alert("Erreur lors du traitement de la réponse de l'IA. Veuillez réessayer.");
                 setIsProcessing(false);
-                setHasResult(true);
-            }, 500);
+                setProgress(0);
+                return; // Stop execution if parsing fails
+            }
         }
 
     } catch (error: any) {
@@ -981,10 +970,10 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                                     <span className="text-gray-600 font-medium">Immersion & Récit</span>
                                     <InfoTooltip text="Ce score évalue votre capacité à faire vivre le bien à travers votre texte. Pour l'augmenter, aidez le futur acquéreur à se projeter en décrivant l'ambiance, la luminosité naturelle, la fluidité de l'agencement et les atouts de la vie de quartier." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.experience || 0}/100</span>
+                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria?.experience || 0}/100</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.experience || 0}%` }}></div>
+                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria?.experience || 0}%` }}></div>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -993,10 +982,10 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                                     <span className="text-gray-600 font-medium">Précision technique</span>
                                     <InfoTooltip align="right" text="Ce score mesure le niveau de détail factuel de votre annonce. Valorisez votre connaissance du bien en précisant des éléments concrets : nature des matériaux, type de chauffage, année de construction ou détails sur les derniers travaux réalisés." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.expertise || 0}/100</span>
+                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria?.expertise || 0}/100</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.expertise || 0}%` }}></div>
+                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria?.expertise || 0}%` }}></div>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -1005,10 +994,10 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                                     <span className="text-gray-600 font-medium">Persuasion et qualité de service</span>
                                     <InfoTooltip text="Ce score reflète la force de persuasion de votre annonce. Pour l'améliorer, mettez en avant la rareté du bien sur le marché (ex: dernier étage, vue dégagée, absence de vis-à-vis) et soulignez la qualité de votre mandat ou de vos services." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.authority || 0}/100</span>
+                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria?.authority || 0}/100</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.authority || 0}%` }}></div>
+                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria?.authority || 0}%` }}></div>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -1017,10 +1006,10 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                                     <span className="text-gray-600 font-medium">Transparence et réassurance</span>
                                     <InfoTooltip align="right" text="Ce score indique si votre annonce est complète et sécurisante pour l'acheteur. Assurez-vous de la présence de toutes les informations légales obligatoires (DPE, loi ALUR, montant précis des charges, copropriété) pour instaurer une confiance immédiate." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.trust || 0}/100</span>
+                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria?.trust || 0}/100</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.trust || 0}%` }}></div>
+                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria?.trust || 0}%` }}></div>
                             </div>
                         </div>
                     </div>
