@@ -12,25 +12,6 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavigateToIntelligence, onNavigateToHistory, onSelectProperty, history, userFirstName }) => {
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const fetchSignedUrls = async () => {
-      const urls: Record<string, string> = {};
-      const itemsToFetch = history.slice(0, 3);
-      for (const item of itemsToFetch) {
-        if (item.image && !item.image.startsWith('blob:')) {
-          const url = await getSignedUrl(item.image);
-          if (url) urls[item.id] = url;
-        } else if (item.image) {
-            urls[item.id] = item.image;
-        }
-      }
-      setSignedUrls(urls);
-    };
-    fetchSignedUrls();
-  }, [history]);
-
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
@@ -132,8 +113,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavi
               >
                 <div className="relative h-48 overflow-hidden bg-gray-50">
                   
-                  {signedUrls[item.id] ? (
-                    <img src={signedUrls[item.id]} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                  {item.image ? (
+                    <img src={item.image} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                   ) : item.type === 'intelligence' ? (
                     <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
                       <MapPin size={48} className="text-indigo-400 opacity-80" />
