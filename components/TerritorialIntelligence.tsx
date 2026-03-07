@@ -304,23 +304,21 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       promptText += `
       Instructions de formatage (Générer la réponse en blocs avec la structure suivante) :
 
+      # Sommaire
+      1. Synthèse du Quartier
+      2. Client Cible & Profil
+      3. Argumentaire de Vente
+      4. Marché Immobilier Local
+      5. Commodités & Accessibilité
+      6. Urbanisme & Projets
+      7. Valorisation & Marché des Fonds de Commerce
+      8. Analyse de Risques
+      9. FAQ Investisseur
+      10. Analyse Parcellaire & Urbanisme
+      11. Sources
+
       # Synthèse du Quartier
       (Un paragraphe accrocheur de 3-4 lignes décrivant l'ambiance générale du secteur).
-
-      ${isTerrain ? `
-      # Analyse Parcellaire & Urbanisme (SPÉCIAL TERRAIN)
-      **Référence Cadastrale** : ${cadastralInfo ? `Section ${cadastralInfo.section} N°${cadastralInfo.numero}` : 'Non identifiée automatiquement'}.
-      **Zonage PLU Officiel** : ${zoningInfo && zoningInfo.length > 0 ? `**${zoningInfo[0].code}** (${zoningInfo[0].libelle})` : '[Non détecté automatiquement, voir analyse ci-dessous]'}
-      
-      ## Constructibilité & Règles
-      | Critère | Verdict | Détails |
-      | :--- | :--- | :--- |
-      | Constructibilité | [Oui/Non/Sous conditions] | [Explication] |
-      | Emprise au sol | [Est. %] | [Détails] |
-      | Hauteur max | [Est. m] | [Détails] |
-      
-      **Analyse détaillée** : (Explique les conséquences concrètes du zonage détecté).
-      ` : ''}
 
       # Client Cible & Profil
       (Définir la cible idéale sous forme de liste à puces).
@@ -358,9 +356,6 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       (Données pros).
       ` : ''}
 
-      # Sources
-      (Lister les sources, mentionner "Géoportail de l'Urbanisme" si le zonage a été trouvé).
-
       # Analyse de Risques
       Présente un tableau d'évaluation des risques avec 3 niveaux (🟢 Faible / 🟡 Modéré / 🔴 Élevé) :
 
@@ -385,6 +380,24 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       - Fiscalité applicable (Denormandie, déficit foncier, etc.)
       - Qualité des locataires potentiels
       - Liquidité du marché (facilité de revente)
+
+      ${isTerrain ? `
+      # Analyse Parcellaire & Urbanisme (SPÉCIAL TERRAIN)
+      **Référence Cadastrale** : ${cadastralInfo ? `Section ${cadastralInfo.section} N°${cadastralInfo.numero}` : 'Non identifiée automatiquement'}.
+      **Zonage PLU Officiel** : ${zoningInfo && zoningInfo.length > 0 ? `**${zoningInfo[0].code}** (${zoningInfo[0].libelle})` : '[Non détecté automatiquement, voir analyse ci-dessous]'}
+      
+      ## Constructibilité & Règles
+      | Critère | Verdict | Détails |
+      | :--- | :--- | :--- |
+      | Constructibilité | [Oui/Non/Sous conditions] | [Explication] |
+      | Emprise au sol | [Est. %] | [Détails] |
+      | Hauteur max | [Est. m] | [Détails] |
+      
+      **Analyse détaillée** : (Explique les conséquences concrètes du zonage détecté).
+      ` : ''}
+
+      # Sources
+      (Lister les sources, mentionner "Géoportail de l'Urbanisme" si le zonage a été trouvé).
 
       IMPORTANT : Identifie précisément la localisation (Ville, Code Postal) pour le champ 'location' du JSON de sortie.
       `;

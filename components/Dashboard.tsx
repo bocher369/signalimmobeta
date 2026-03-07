@@ -111,17 +111,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToStudio, onNavi
                   onClick={() => onSelectProperty(item)}
                   className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
               >
-                <div className="relative h-48 overflow-hidden bg-gray-50">
-                  
-                  {item.image ? (
-                    <img src={item.image} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-                  ) : item.type === 'intelligence' ? (
+                <div className="relative h-48 overflow-hidden rounded-t-xl">
+                  {item.type === 'intelligence' ? (
                     <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
-                      <MapPin size={48} className="text-indigo-400 opacity-80" />
+                      <MapPin size={40} className="text-indigo-400" />
                     </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-blue-50 group-hover:scale-105 transition-transform duration-500">
-                      <FileText size={48} className="text-blue-300 opacity-80" />
+                      <Sparkles size={40} className="text-blue-400" />
                     </div>
                   )}
                   

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Property } from '../types';
-import { Search, Filter, ArrowLeft, MapPin, Ghost, LayoutGrid, List, ArrowRight, FileText, Trash2 } from 'lucide-react';
+import { Search, Filter, ArrowLeft, MapPin, Ghost, LayoutGrid, List, ArrowRight, FileText, Trash2, Sparkles } from 'lucide-react';
 
 interface HistoryProps {
     onBack: () => void;
@@ -108,11 +108,8 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                         onClick={() => onSelectProperty(item)}
                         className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
                     >
-                        <div className="relative h-48 overflow-hidden bg-gray-50">
-                        
-                        {item.image && item.image !== 'null' && item.image !== 'undefined' && item.image.trim() !== '' ? (
-                            <img src={item.image} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-                        ) : item.type === 'intelligence' ? (
+                        <div className="relative h-48 overflow-hidden rounded-t-xl">
+                          {item.type === 'intelligence' ? (
                             <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
                                 <MapPin size={48} className="text-indigo-400" />
                             </div>
@@ -156,9 +153,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             {/* Thumbnail */}
                             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 relative border border-gray-100">
-                                {item.image && item.image !== 'null' && item.image !== 'undefined' && item.image.trim() !== '' ? (
-                                    <img src={item.image} alt={item.address} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                ) : item.type === 'intelligence' ? (
+                                {item.type === 'intelligence' ? (
                                     <div className="w-full h-full flex items-center justify-center bg-indigo-50">
                                         <MapPin size={24} className="text-indigo-400" />
                                     </div>
@@ -187,7 +182,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onDeleteProperty(item.id, item.image);
+                                    onDeleteProperty(item.id, "");
                                 }}
                                 className="text-gray-400 hover:text-red-500 transition-colors"
                             >
