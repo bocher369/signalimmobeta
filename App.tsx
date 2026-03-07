@@ -135,6 +135,19 @@ function App() {
     }
   };
 
+  const handleClearHistory = async () => {
+    if (!session) return;
+
+    const { error } = await supabase
+      .from('properties')
+      .delete()
+      .eq('user_id', session.user.id);
+
+    if (!error) {
+      setHistory([]);
+    }
+  };
+
   const handleSelectProperty = (property: Property) => {
     setSelectedProperty(property);
     if (property.type === 'intelligence') {
@@ -183,6 +196,7 @@ function App() {
               history={history}
               onSelectProperty={handleSelectProperty}
               onDeleteProperty={handleDeleteProperty}
+              onClearHistory={handleClearHistory}
           />
         )}
         {currentView === 'signin' && (

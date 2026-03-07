@@ -7,9 +7,10 @@ interface HistoryProps {
     history: Property[];
     onSelectProperty: (property: Property) => void;
     onDeleteProperty: (id: string, imagePath: string) => void;
+    onClearHistory: () => void;
 }
 
-export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectProperty, onDeleteProperty }) => {
+export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectProperty, onDeleteProperty, onClearHistory }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -43,6 +44,17 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
         {/* Search & View Toggle */}
         <div className="flex items-center gap-4">
             
+            <button 
+                onClick={() => {
+                    if (window.confirm("Êtes-vous sûr de vouloir effacer tout l'historique ?")) {
+                        onClearHistory();
+                    }
+                }}
+                className="text-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors"
+            >
+                Effacer l'historique
+            </button>
+
             {/* View Toggle */}
             <div className="hidden md:flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
                 <button 
@@ -102,11 +114,11 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                             <img src={item.image} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                         ) : item.type === 'intelligence' ? (
                             <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
-                                <MapPin size={48} className="text-indigo-400 opacity-80" />
+                                <MapPin size={48} className="text-indigo-400" />
                             </div>
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-blue-50 group-hover:scale-105 transition-transform duration-500">
-                                <FileText size={48} className="text-blue-300 opacity-80" />
+                                <Sparkles size={48} className="text-brand-400" />
                             </div>
                         )}
                         
@@ -152,7 +164,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                                     </div>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-blue-50">
-                                        <FileText size={24} className="text-blue-300" />
+                                        <Sparkles size={24} className="text-brand-400" />
                                     </div>
                                 )}
                             </div>

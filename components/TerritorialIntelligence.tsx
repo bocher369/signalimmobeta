@@ -548,7 +548,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
         }
 
         // Standard Text Rendering
-        let text = cleanText(line);
+        let text = cleanText(line).replace(/\\n/g, ' ');
 
         if (line.startsWith('# ')) {
             // H1
