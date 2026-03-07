@@ -118,7 +118,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                             </div>
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-blue-50 group-hover:scale-105 transition-transform duration-500">
-                                <Sparkles size={48} className="text-brand-400" />
+                                <Sparkles size={48} className="text-blue-400" />
                             </div>
                         )}
                         
@@ -164,7 +164,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                                     </div>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-blue-50">
-                                        <Sparkles size={24} className="text-brand-400" />
+                                        <Sparkles size={24} className="text-blue-400" />
                                     </div>
                                 )}
                             </div>
