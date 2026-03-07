@@ -361,6 +361,31 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       # Sources
       (Lister les sources, mentionner "Géoportail de l'Urbanisme" si le zonage a été trouvé).
 
+      # Analyse de Risques
+      Présente un tableau d'évaluation des risques avec 3 niveaux (🟢 Faible / 🟡 Modéré / 🔴 Élevé) :
+
+      | Risque | Niveau | Explication |
+      | :--- | :--- | :--- |
+      | Vacance locative | [Niveau] | [Explication courte] |
+      | Moins-value à moyen terme | [Niveau] | [Explication courte] |
+      | Encadrement des loyers | [Niveau] | [Applicable ou non] |
+      | Risques naturels (Géorisques) | [Niveau] | [Inondation, séisme, retrait-gonflement argiles] |
+      | Risque de déclin démographique | [Niveau] | [Tendance population] |
+
+      # FAQ Investisseur
+      Rédige 6 questions-réponses que se pose un investisseur ou acheteur sérieux sur ce bien et ce secteur. Format :
+
+      **Q : [Question directe]**
+      R : [Réponse factuelle et rassurante, 2-3 lignes maximum]
+
+      Exemples de questions à couvrir :
+      - Risques naturels et technologiques
+      - Tendance démographique
+      - Potentiel de valorisation ou travaux
+      - Fiscalité applicable (Denormandie, déficit foncier, etc.)
+      - Qualité des locataires potentiels
+      - Liquidité du marché (facilité de revente)
+
       IMPORTANT : Identifie précisément la localisation (Ville, Code Postal) pour le champ 'location' du JSON de sortie.
       `;
 
