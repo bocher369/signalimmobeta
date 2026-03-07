@@ -14,9 +14,11 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
       ],
-      define: {
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env._GEMINI_API_KEY),
-      },
+define: {
+  'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env._GEMINI_API_KEY),
+  'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://wmdpqpepkjgtvijssaox.supabase.co'),
+  'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_-cWYR5cRD9_02XCke1h45A_qqIBaafx'),
+},
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
