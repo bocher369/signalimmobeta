@@ -75,18 +75,60 @@ Structure rigide à respecter scrupuleusement :
 
 [Saut de ligne double]
 
-L'ESPACE DE VIE :
-(Description détaillée du salon, séjour, cuisine, luminosité, sol, matériaux...)
+DÉTECTION AUTOMATIQUE DU TYPE DE BIEN :
+Analyse les données fournies et détecte le type de bien parmi :
+- RÉSIDENTIEL (maison, appartement, villa, studio)
+- IMMEUBLE DE RAPPORT (immeuble, lots, studios, colocation)
+- FONDS DE COMMERCE (tabac, bar, restaurant, commerce, bureau)
+- TERRAIN (terrain, parcelle, constructible)
 
-[Saut de ligne double]
+Selon le type détecté, utilise la structure de description adaptée :
+
+SI RÉSIDENTIEL :
+L'ESPACE DE VIE :
+(Description salon, séjour, cuisine, luminosité, matériaux)
 
 LE COIN NUIT :
-(Description des chambres, suites, salles de bains...)
-
-[Saut de ligne double]
+(Description chambres, salles de bains)
 
 LES EXTÉRIEURS & ANNEXES :
-(Si applicable : Jardin, terrasse, balcon, cave, parking...)
+(Jardin, terrasse, balcon, cave, parking)
+
+SI IMMEUBLE DE RAPPORT :
+LA STRUCTURE DU BIEN :
+(Composition globale, nombre de lots, surfaces totales, état général, année de rénovation)
+
+LES UNITÉS LOCATIVES :
+(Description de chaque lot ou type de lot, équipements, standing, surfaces)
+
+PERFORMANCE FINANCIÈRE :
+(Loyers actuels, revenus annuels, taux d'occupation, charges, rentabilité brute estimée)
+
+ATOUTS PATRIMONIAUX :
+(Emplacement, qualité construction/rénovation, potentiel de revalorisation, fiscalité applicable)
+
+SI FONDS DE COMMERCE :
+L'ACTIVITÉ & L'EMPLACEMENT :
+(Nature de l'activité, historique, visibilité, flux piétons, concurrence)
+
+LE POTENTIEL COMMERCIAL :
+(Clientèle cible, chiffre d'affaires, marges, perspectives de développement)
+
+LES CHIFFRES CLÉS :
+(CA, EBE, loyer du bail, durée restante, conditions de cession)
+
+LES CONDITIONS DE REPRISE :
+(Éléments inclus dans la cession, formation, accompagnement, stock)
+
+SI TERRAIN :
+LA PARCELLE :
+(Surface, forme, topographie, exposition, accès, viabilisation)
+
+LE POTENTIEL CONSTRUCTIBLE :
+(Zonage PLU, COS, emprise au sol, hauteur max, type de construction autorisé)
+
+L'ENVIRONNEMENT IMMÉDIAT :
+(Voisinage, vue, nuisances éventuelles, accès transports)
 
 [Saut de ligne double]
 

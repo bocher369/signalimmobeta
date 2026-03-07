@@ -110,7 +110,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                     >
                         <div className="relative h-48 overflow-hidden bg-gray-50">
                         
-                        {item.image ? (
+                        {item.image && item.image !== 'null' && item.image !== 'undefined' && item.image.trim() !== '' ? (
                             <img src={item.image} alt={item.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                         ) : item.type === 'intelligence' ? (
                             <div className="w-full h-full flex items-center justify-center bg-indigo-50 group-hover:scale-105 transition-transform duration-500">
@@ -156,7 +156,7 @@ export const History: React.FC<HistoryProps> = ({ onBack, history, onSelectPrope
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             {/* Thumbnail */}
                             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 relative border border-gray-100">
-                                {item.image ? (
+                                {item.image && item.image !== 'null' && item.image !== 'undefined' && item.image.trim() !== '' ? (
                                     <img src={item.image} alt={item.address} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 ) : item.type === 'intelligence' ? (
                                     <div className="w-full h-full flex items-center justify-center bg-indigo-50">
