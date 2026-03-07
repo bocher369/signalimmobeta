@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "https://signalimmobeta-300954246626.europe-west1.run.app"
+      }
+    ]
+  }
+}
