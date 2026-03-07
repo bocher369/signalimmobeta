@@ -3,10 +3,9 @@ import {
   Search, Mic, UploadCloud, MapPin, Wifi, Train, 
   Loader2, CheckCircle2, Copy, Printer, RefreshCcw, 
   Mail, Home, StopCircle, X, FileText, Image as ImageIcon,
-  Key, Sparkles, PencilLine, BrainCircuit, Check,
+  Sparkles, PencilLine, BrainCircuit, Check,
   BarChart3, TrendingUp, AlertCircle, Info, Instagram
 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedContent, OutputChannel, ProcessingStep, Property } from '../types';
 
 // Tooltip Component
@@ -228,7 +227,6 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
   const [isRecording, setIsRecording] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent>({ portal: '', social: '', email: '' });
-  const [hasApiKey, setHasApiKey] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -258,14 +256,6 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
       setLastInstruction('');
     }
   }, [initialProperty]);
-
-  // API Key Check
-  useEffect(() => {
-    const win = window as any;
-    if (win.aistudio) {
-      win.aistudio.hasSelectedApiKey().then(setHasApiKey);
-    }
-  }, []);
   
   // Address Autocomplete Logic (API BAN)
   useEffect(() => {
@@ -334,20 +324,6 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         setLastInstruction(description);
     }
 
-    // 1. Obtenir la clé API dynamiquement via le mécanisme de la plateforme
-    const win = window as any;
-    if (!win.aistudio || !(await win.aistudio.hasSelectedApiKey())) {
-        console.error("API Key not selected");
-        setHasApiKey(false);
-        // Ouvre la boîte de dialogue si nécessaire
-        if (win.aistudio) await win.aistudio.openSelectKey();
-        return;
-    }
-
-    // Le SDK récupère automatiquement la clé sélectionnée par l'utilisateur
-    // via le mécanisme de la plateforme, pas besoin de process.env ici.
-    const ai = new GoogleGenAI({});
-    
     setIsProcessing(true);
     setProgress(5); // Start progress
     setHasResult(false);
@@ -404,54 +380,63 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
             currentStep = Math.min(currentStep + 1, INITIAL_STEPS.length - 1);
         }, 800); // Accelerated from 1500 to 800ms for snappier feedback
 
-        // 3. Call Gemini API
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', 
-            contents: { parts },
-            config: {
+        // 3. Call Supabase Edge Function
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                model: "gemini-3-flash-preview",
+                contents: [{ parts }],
                 systemInstruction: SYSTEM_INSTRUCTION,
-                thinkingConfig: { thinkingBudget: 0 }, // Disable thinking for max speed
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        metadata: {
-                            type: Type.OBJECT,
-                            properties: {
-                                price: { type: Type.STRING, description: "Prix du bien (ex: 388 500 €) ou 'Non communiqué'" },
-                                surface: { type: Type.STRING, description: "Surface (ex: 98 m2)" },
-                                rooms: { type: Type.STRING, description: "Nombre de pièces" },
-                                location: { type: Type.STRING, description: "Localisation du bien (Ville + Code Postal) extraite des documents ou de la description" }
-                            }
-                        },
-                        portal: { type: Type.STRING, description: "Contenu pour le portail immobilier (Fiche Maître) - Texte structuré avec sauts de ligne" },
-                        social: { type: Type.STRING, description: "Post pour les réseaux sociaux - Texte structuré avec sauts de ligne" },
-                        email: { type: Type.STRING, description: "Email pour client investisseur - Texte structuré avec sauts de ligne" },
-                        score: {
-                            type: Type.OBJECT,
-                            properties: {
-                                total: { type: Type.NUMBER, description: "Score global sur 100" },
-                                criteria: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        experience: { type: Type.NUMBER, description: "Score Expérience sur 100" },
-                                        expertise: { type: Type.NUMBER, description: "Score Expertise sur 100" },
-                                        authority: { type: Type.NUMBER, description: "Score Autorité sur 100" },
-                                        trust: { type: Type.NUMBER, description: "Score Confiance sur 100" }
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            metadata: {
+                                type: "OBJECT",
+                                properties: {
+                                    price: { type: "STRING", description: "Prix du bien (ex: 388 500 €) ou 'Non communiqué'" },
+                                    surface: { type: "STRING", description: "Surface (ex: 98 m2)" },
+                                    rooms: { type: "STRING", description: "Nombre de pièces" },
+                                    location: { type: "STRING", description: "Localisation du bien (Ville + Code Postal) extraite des documents ou de la description" }
+                                }
+                            },
+                            portal: { type: "STRING", description: "Contenu pour le portail immobilier (Fiche Maître) - Texte structuré avec sauts de ligne" },
+                            social: { type: "STRING", description: "Post pour les réseaux sociaux - Texte structuré avec sauts de ligne" },
+                            email: { type: "STRING", description: "Email pour client investisseur - Texte structuré avec sauts de ligne" },
+                            score: {
+                                type: "OBJECT",
+                                properties: {
+                                    total: { type: "NUMBER", description: "Score global sur 100" },
+                                    criteria: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            experience: { type: "NUMBER", description: "Score Expérience sur 100" },
+                                            expertise: { type: "NUMBER", description: "Score Expertise sur 100" },
+                                            authority: { type: "NUMBER", description: "Score Autorité sur 100" },
+                                            trust: { type: "NUMBER", description: "Score Confiance sur 100" }
+                                        }
+                                    },
+                                    tips: {
+                                        type: "ARRAY",
+                                        items: { type: "STRING" },
+                                        description: "3 conseils pour améliorer le score"
                                     }
-                                },
-                                tips: {
-                                    type: Type.ARRAY,
-                                    items: { type: Type.STRING },
-                                    description: "3 conseils pour améliorer le score"
                                 }
                             }
-                        }
-                    },
-                    required: ["metadata", "portal", "social", "email", "score"]
+                        },
+                        required: ["metadata", "portal", "social", "email", "score"]
+                    }
                 }
-            }
+            })
         });
+
+        if (!response.ok) throw new Error('Failed to generate content');
+        const data = await response.json();
 
         // 4. Handle Response
         clearInterval(interval);
@@ -459,7 +444,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         setSteps(prev => prev.map(s => ({ ...s, completed: true })));
         setProgress(100);
         
-        const resultText = response.text;
+        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (resultText) {
             const parsed = JSON.parse(resultText);
             setGeneratedContent(parsed);
@@ -496,14 +481,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
         console.error("Generation failed:", error);
         setIsProcessing(false);
         setProgress(0);
-        const errorMessage = error.message || JSON.stringify(error);
-        
-        // Handle specific 404/Entity not found which implies API Key/Project issue
-        if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404") || error.status === 404) {
-             setHasApiKey(false); // Force UI update to show key selection
-        } else {
-             alert("Une erreur technique est survenue. Veuillez réessayer.");
-        }
+        alert("Une erreur technique est survenue. Veuillez réessayer.");
     }
   };
 
@@ -683,48 +661,28 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
 
   const actionBlock = (
     <div className="mb-6">
-        {!hasApiKey ? (
-             <div className="space-y-2">
-                 <button 
-                  onClick={async () => {
-                      const win = window as any;
-                      if (win.aistudio) {
-                          await win.aistudio.openSelectKey();
-                          setHasApiKey(true);
-                      }
-                  }}
-                  className="w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-yellow-500/20 bg-yellow-500 text-white hover:bg-yellow-600 transition-all flex items-center justify-center gap-3 relative z-10"
-                >
-                  <Key size={20} /> Sélectionner une clé API payante
-                </button>
-                <p className="text-center text-xs text-gray-400">
-                    Une clé API avec facturation activée est requise. <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="underline hover:text-gray-600">En savoir plus</a>
-                </p>
-             </div>
-        ) : (
-            <button 
-              onClick={handleGenerate}
-              disabled={((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult}
-              className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-brand-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
-                ${((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow-brand-500/40'}`}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="animate-spin" /> {hasResult ? 'Mise à jour en cours...' : 'Analyser et Générer'}
-                </>
+        <button 
+          onClick={handleGenerate}
+          disabled={((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult}
+          className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-brand-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
+            ${((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              : 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow-brand-500/40'}`}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="animate-spin" /> {hasResult ? 'Mise à jour en cours...' : 'Analyser et Générer'}
+            </>
+          ) : (
+            <>
+              {hasResult ? (
+                <><Sparkles size={20} /> Mettre à jour l'annonce</>
               ) : (
-                <>
-                  {hasResult ? (
-                    <><Sparkles size={20} /> Mettre à jour l'annonce</>
-                  ) : (
-                    <><RefreshCcw size={20} /> {initialProperty ? 'Régénérer l\'annonce' : 'Générer l\'annonce GEO'}</>
-                  )}
-                </>
+                <><RefreshCcw size={20} /> {initialProperty ? 'Régénérer l\'annonce' : 'Générer l\'annonce GEO'}</>
               )}
-            </button>
-        )}
+            </>
+          )}
+        </button>
     </div>
   );
 

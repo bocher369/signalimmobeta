@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Sparkles, MapPin, Building2, TrendingUp, Key, ArrowRight, FileText, Mic, StopCircle, PencilLine, Download, Copy, Check, Info, UploadCloud, X } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { Search, Loader2, Sparkles, MapPin, Building2, TrendingUp, ArrowRight, FileText, Mic, StopCircle, PencilLine, Download, Copy, Check, Info, UploadCloud, X } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { parse } from "marked";
@@ -50,7 +49,6 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [reportResult, setReportResult] = useState('');
-  const [hasApiKey, setHasApiKey] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   
   // New state for inputs matching Studio
@@ -73,14 +71,6 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       setSpecificInstructions('');
     }
   }, [initialData]);
-
-  // API Key Check
-  useEffect(() => {
-    const win = window as any;
-    if (win.aistudio) {
-      win.aistudio.hasSelectedApiKey().then(setHasApiKey);
-    }
-  }, []);
 
   // Cleanup speech recognition on unmount
   useEffect(() => {
@@ -261,19 +251,6 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const handleGenerateReport = async () => {
     if (!address && files.length === 0) return;
 
-    // 1. Obtenir la clé API dynamiquement via le mécanisme de la plateforme
-    const win = window as any;
-    if (!win.aistudio || !(await win.aistudio.hasSelectedApiKey())) {
-        console.error("API Key not selected");
-        setHasApiKey(false);
-        // Ouvre la boîte de dialogue si nécessaire
-        if (win.aistudio) await win.aistudio.openSelectKey();
-        return;
-    }
-
-    // Le SDK récupère automatiquement la clé sélectionnée par l'utilisateur
-    // via le mécanisme de la plateforme, pas besoin de process.env ici.
-    const ai = new GoogleGenAI({});
     setIsProcessing(true);
     setReportResult('');
 
@@ -392,56 +369,61 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       const fileParts = await Promise.all(files.map(fileToPart));
       parts.push(...fileParts);
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: { parts },
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              location: { type: Type.STRING, description: "La localisation précise du bien (Ville + CP) identifiée" },
-              report: { type: Type.STRING, description: "Le rapport complet structuré en Markdown" }
-            },
-            required: ["location", "report"]
-          }
-        }
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-generate`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+              model: "gemini-3-flash-preview",
+              contents: [{ parts }],
+              systemInstruction: "",
+              generationConfig: {
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                      type: "OBJECT",
+                      properties: {
+                          location: { type: "STRING" },
+                          report: { type: "STRING" }
+                      },
+                      required: ["location", "report"]
+                  }
+              },
+              tools: [{ google_search: {} }]
+          })
       });
 
-      if (response.text) {
-        const parsed = JSON.parse(response.text);
-        setReportResult(parsed.report);
-        
-        // Save to history
-        if (onNewEntry) {
-            // Try to find an image file for thumbnail
-            const imageFile = files.find(f => f.type.startsWith('image/'));
-            const imagePreview = imageFile ? URL.createObjectURL(imageFile) : "";
+      if (!response.ok) throw new Error('Failed to generate report');
+      const data = await response.json();
 
-            const newItem: Property = {
-                id: Date.now().toString(),
-                address: parsed.location || address || "Localisation du bien",
-                price: "Analyse Secteur", 
-                image: imagePreview,
-                geoScore: 98,
-                date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-                type: 'intelligence',
-                reportContent: parsed.report
-            };
-            onNewEntry(newItem);
-        }
+      const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = JSON.parse(resultText);
+      setReportResult(parsed.report);
+      
+      // Save to history
+      if (onNewEntry) {
+          // Try to find an image file for thumbnail
+          const imageFile = files.find(f => f.type.startsWith('image/'));
+          const imagePreview = imageFile ? URL.createObjectURL(imageFile) : "";
+
+          const newItem: Property = {
+              id: Date.now().toString(),
+              address: parsed.location || address || "Localisation du bien",
+              price: "Analyse Secteur", 
+              image: imagePreview,
+              geoScore: 98,
+              date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+              type: 'intelligence',
+              reportContent: parsed.report
+          };
+          onNewEntry(newItem);
       }
     } catch (error: any) {
         console.error("Report generation failed:", error);
-        const errorMessage = error.message || JSON.stringify(error);
-        if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404") || error.status === 404) {
-             setHasApiKey(false);
-        } else {
-             alert("Une erreur est survenue lors de la génération du rapport.");
-        }
+        alert("Une erreur est survenue lors de la génération du rapport.");
     } finally {
-      setIsProcessing(false);
+        setIsProcessing(false);
     }
   };
 
@@ -631,47 +613,27 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   // Layout Blocks
   const actionBlock = (
     <div className="mb-6">
-        {!hasApiKey ? (
-            <div className="space-y-2">
-                <button 
-                    onClick={async () => {
-                        const win = window as any;
-                        if (win.aistudio) {
-                            await win.aistudio.openSelectKey();
-                            setHasApiKey(true);
-                        }
-                    }}
-                    className="w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-yellow-500/20 bg-yellow-500 text-white hover:bg-yellow-600 transition-all flex items-center justify-center gap-3 relative z-10"
-                >
-                    <Key size={20} /> Sélectionner une clé API payante
-                </button>
-                <p className="text-center text-xs text-gray-400">
-                        L'intelligence territoriale nécessite une clé API active pour les recherches en temps réel.
-                </p>
-            </div>
-        ) : (
-            <button 
-                onClick={handleGenerateReport}
-                disabled={(!address && files.length === 0) || isProcessing}
-                className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
-                ${(!address && files.length === 0) || isProcessing
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/40'}`}
-            >
-                {isProcessing ? (
-                <>
-                    <Loader2 className="animate-spin" /> 
-                    {address.toLowerCase().includes('terrain') || specificInstructions.toLowerCase().includes('terrain')
-                        ? "Consultation Cadastre & Urbanisme (IGN)..." 
-                        : "Analyse du secteur en cours..."}
-                </>
-                ) : (
-                <>
-                        {initialData ? "Régénérer le rapport" : "Générer le rapport"}
-                </>
-                )}
-            </button>
-        )}
+        <button 
+            onClick={handleGenerateReport}
+            disabled={(!address && files.length === 0) || isProcessing}
+            className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
+            ${(!address && files.length === 0) || isProcessing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/40'}`}
+        >
+            {isProcessing ? (
+            <>
+                <Loader2 className="animate-spin" /> 
+                {address.toLowerCase().includes('terrain') || specificInstructions.toLowerCase().includes('terrain')
+                    ? "Consultation Cadastre & Urbanisme (IGN)..." 
+                    : "Analyse du secteur en cours..."}
+            </>
+            ) : (
+            <>
+                    {initialData ? "Régénérer le rapport" : "Générer le rapport"}
+            </>
+            )}
+        </button>
     </div>
   );
 
