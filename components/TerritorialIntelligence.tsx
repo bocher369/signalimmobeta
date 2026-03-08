@@ -69,6 +69,8 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   useEffect(() => {
     if (initialData) {
       setAddress(initialData.address);
+      setSuggestions([]);
+      setShowSuggestions(false);
       if (initialData.reportContent) {
         setReportResult(initialData.reportContent);
       }
@@ -92,8 +94,8 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
     const signal = controller.signal;
 
     const timer = setTimeout(async () => {
-      // Only search if user hasn't just selected an address (avoid loop)
-      if (address.length > 3 && (!selectedLocation || address !== selectedLocation.properties.label)) {
+      // Only search if user hasn't just selected an address (avoid loop) and address wasn't pre-filled from initialData
+      if (address.length > 3 && (!selectedLocation || address !== selectedLocation.properties.label) && address !== initialData?.address) {
         setIsSearchingAddress(true);
         try {
           const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(address)}&limit=5`, { signal });
