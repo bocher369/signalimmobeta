@@ -3,7 +3,7 @@ import { Search, Loader2, Sparkles, MapPin, Building2, TrendingUp, ArrowRight, F
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { parse } from "marked";
-import { Property } from '../types';
+import { Property, TerritorialData } from '../types';
 
 interface AddressFeature {
   geometry: {
@@ -36,9 +36,11 @@ const fileToPart = async (file: File) => {
 interface TerritorialIntelligenceProps {
   onNewEntry?: (property: Property) => void;
   initialData?: Property | null;
+  linkedPropertyId?: string;
+  onUpdateTerritorialData?: (id: string, data: TerritorialData) => Promise<void>;
 }
 
-export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = ({ onNewEntry, initialData }) => {
+export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = ({ onNewEntry, initialData, linkedPropertyId, onUpdateTerritorialData }) => {
   const [address, setAddress] = useState('');
   // Store full address details including coordinates
   const [selectedLocation, setSelectedLocation] = useState<AddressFeature | null>(null);
@@ -56,6 +58,9 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const [isRecording, setIsRecording] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   
+  const [cadastralData, setCadastralData] = useState<{ section?: string; numero?: string; contenance?: string } | null>(null);
+  const [zoningData, setZoningData] = useState<Array<{ type?: string; libelle?: string; code?: string }> | null>(null);
+
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -248,6 +253,42 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       return null;
   };
 
+  const saveTerritorialAnalysis = async (
+    reportMarkdown: string,
+    parsedLocation?: string,
+    cadastral?: { section?: string; numero?: string; contenance?: string } | null,
+    zoning?: Array<{ type?: string; libelle?: string; code?: string }> | null,
+  ) => {
+    const territorialData: TerritorialData = {
+      address: parsedLocation || address,
+      coordinates: selectedLocation ? {
+        lon: selectedLocation.geometry.coordinates[0],
+        lat: selectedLocation.geometry.coordinates[1],
+      } : undefined,
+      generated_at: new Date().toISOString(),
+      report_markdown: reportMarkdown,
+      cadastral: cadastral ?? undefined,
+      zoning: zoning ?? undefined,
+    };
+
+    if (linkedPropertyId && onUpdateTerritorialData) {
+      await onUpdateTerritorialData(linkedPropertyId, territorialData);
+    } else if (onNewEntry) {
+      const imageFile = files.find(f => f.type.startsWith('image/'));
+      onNewEntry({
+        id: Date.now().toString(),
+        address: parsedLocation || address || "Localisation du bien",
+        price: "Analyse Secteur",
+        image: imageFile ? URL.createObjectURL(imageFile) : "",
+        geoScore: 98,
+        date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+        type: 'intelligence',
+        reportContent: reportMarkdown,
+        territorial_data: territorialData,
+      });
+    }
+  };
+
   const handleGenerateReport = async () => {
     if (!address && files.length === 0) return;
 
@@ -272,6 +313,8 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
           ]);
           cadastralInfo = cadastre;
           zoningInfo = zoning;
+          setCadastralData(cadastre);
+          setZoningData(zoning);
       }
 
       let promptText = `Rôle : Tu es un expert en Intelligence Territoriale, Urbanisme et analyse immobilière.
@@ -439,24 +482,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       const parsed = JSON.parse(resultText);
       setReportResult(parsed.report);
       
-      // Save to history
-      if (onNewEntry) {
-          // Try to find an image file for thumbnail
-          const imageFile = files.find(f => f.type.startsWith('image/'));
-          const imagePreview = imageFile ? URL.createObjectURL(imageFile) : "";
-
-          const newItem: Property = {
-              id: Date.now().toString(),
-              address: parsed.location || address || "Localisation du bien",
-              price: "Analyse Secteur", 
-              image: imagePreview,
-              geoScore: 98,
-              date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-              type: 'intelligence',
-              reportContent: parsed.report
-          };
-          onNewEntry(newItem);
-      }
+      await saveTerritorialAnalysis(parsed.report, parsed.location, cadastralInfo, zoningInfo);
     } catch (error: any) {
         console.error("Report generation failed:", error);
         alert("Une erreur est survenue lors de la génération du rapport.");

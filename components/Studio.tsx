@@ -4,7 +4,7 @@ import {
   Loader2, CheckCircle2, Copy, Printer, RefreshCcw, 
   Mail, Home, StopCircle, X, FileText, Image as ImageIcon,
   Sparkles, PencilLine, BrainCircuit, Check,
-  BarChart3, TrendingUp, AlertCircle, Info, Instagram
+  BarChart3, TrendingUp, AlertCircle, Info, Instagram, Globe
 } from 'lucide-react';
 import { GeneratedContent, OutputChannel, ProcessingStep, Property } from '../types';
 
@@ -250,11 +250,12 @@ const fileToPart = async (file: File) => {
 };
 
 interface StudioProps {
-  onNewProperty?: (property: Property) => void;
+  onNewProperty?: (property: Property) => Promise<Property | null> | void;
   initialProperty?: Property | null;
+  onNavigateToIntelligence?: (property: Property) => void;
 }
 
-export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }) => {
+export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, onNavigateToIntelligence }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasResult, setHasResult] = useState(false);
@@ -270,7 +271,8 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
   const [files, setFiles] = useState<File[]>([]);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent>({ portal: '', social: '', email: '' });
   const [isCopied, setIsCopied] = useState(false);
-  
+  const [savedProperty, setSavedProperty] = useState<Property | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -297,6 +299,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
       setDescription('');
       setLastInstruction('');
     }
+    setSavedProperty(null);
   }, [initialProperty]);
   
   // Address Autocomplete Logic (API BAN)
@@ -500,7 +503,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                 ? URL.createObjectURL(imageFile) 
                 : ""; // No fallback image, will use icon instead
               
-              onNewProperty({
+              const newItem: Property = {
                 id: Date.now().toString(),
                 address: parsed.metadata?.location || address || "Localisation du bien",
                 price: parsed.metadata?.price || "Prix sur demande",
@@ -510,7 +513,9 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
                 generatedContent: parsed,
                 metadata: parsed.metadata,
                 type: 'listing'
-              });
+              };
+              const savedResult = await onNewProperty(newItem);
+              if (savedResult) setSavedProperty(savedResult);
             }
 
             setTimeout(() => {
@@ -945,9 +950,17 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty }
               </div>
               
               <div className="flex items-center gap-2 justify-end">
+                 {savedProperty && onNavigateToIntelligence && (
+                   <button
+                     onClick={() => onNavigateToIntelligence({ ...savedProperty, address })}
+                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
+                   >
+                     <Globe size={14} /> Analyser le territoire
+                   </button>
+                 )}
                  {activeChannel !== 'score' && (
                    <>
-                     <button 
+                     <button
                       onClick={handleCopy}
                       className={`p-2 rounded-lg transition-all duration-200 ${isCopied ? 'text-green-600 bg-green-50 scale-110' : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'}`}
                       title="Copier le texte"
