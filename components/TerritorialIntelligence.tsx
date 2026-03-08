@@ -51,6 +51,9 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [reportResult, setReportResult] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+
+  // Gemini JSON mode may escape newlines as literal \n — always normalize before use
+  const normalizeReport = (text: string) => text.replace(/\\n/g, '\n');
   
   // New state for inputs matching Studio
   const [specificInstructions, setSpecificInstructions] = useState('');
@@ -71,7 +74,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       setSuggestions([]);
       setShowSuggestions(false);
       if (initialData.reportContent) {
-        setReportResult(initialData.reportContent);
+        setReportResult(normalizeReport(initialData.reportContent));
       }
       setFiles([]);
       setSpecificInstructions('');
@@ -496,9 +499,10 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
 
   const handleCopy = async () => {
     try {
-        const htmlContent = parse(reportResult);
+        const normalized = normalizeReport(reportResult);
+        const htmlContent = parse(normalized);
         const blobHtml = new Blob([htmlContent as string], { type: "text/html" });
-        const blobText = new Blob([reportResult], { type: "text/plain" });
+        const blobText = new Blob([normalized], { type: "text/plain" });
         const data = [new ClipboardItem({
             ["text/html"]: blobHtml,
             ["text/plain"]: blobText
@@ -539,7 +543,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
           <div style="color: #666; font-size: 10pt; margin: 0;">Adresse : ${address}</div>
           <div style="color: #666; font-size: 10pt; margin: 0;">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
         </div>
-        ${(parse(reportResult) as string).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '')}
+        ${(parse(normalizeReport(reportResult)) as string).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '')}
       </div>
     `;
 
@@ -802,7 +806,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
                         </div>
                         <article 
                             className="prose prose-indigo max-w-none"
-                            dangerouslySetInnerHTML={{ __html: parse(reportResult) as string }}
+                            dangerouslySetInnerHTML={{ __html: parse(normalizeReport(reportResult)) as string }}
                         />
                     </div>
                 </div>
