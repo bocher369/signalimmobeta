@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, Sparkles, MapPin, Building2, TrendingUp, ArrowRight, FileText, Mic, StopCircle, PencilLine, Download, Copy, Check, Info, UploadCloud, X } from 'lucide-react';
 import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
 import { parse } from "marked";
 import { Property, TerritorialData } from '../types';
 
@@ -514,166 +513,44 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   };
 
   const handleDownloadPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const margin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxLineWidth = pageWidth - (margin * 2);
-    
-    let y = 20;
 
-    // Helper to clean text
-    const cleanText = (text: string) => {
-        if (!text) return '';
-        // Remove emojis
-        let cleaned = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
-        // Remove markdown bold/italic
-        cleaned = cleaned.replace(/\*\*/g, '').replace(/\*/g, '');
-        // Remove specific artifacts like "!—" or "!- " which might be broken markdown images or list markers
-        cleaned = cleaned.replace(/!—/g, '').replace(/!-/g, '').replace(/! /g, '');
-        return cleaned.trim();
-    };
+    const htmlContent = `
+      <div style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #222; line-height: 1.6; width: ${pageWidth - margin * 2}mm;">
+        <style>
+          h1 { font-size: 14pt; color: #1e1b4b; margin: 14px 0 6px; border-bottom: 1px solid #c7d2fe; padding-bottom: 4px; }
+          h2 { font-size: 12pt; color: #3730a3; margin: 12px 0 5px; }
+          h3 { font-size: 11pt; color: #4f46e5; margin: 10px 0 4px; }
+          p { margin: 0 0 8px; }
+          ul, ol { margin: 4px 0 8px 18px; }
+          li { margin-bottom: 3px; }
+          strong { font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; }
+          th { background-color: #4f46e5; color: white; padding: 5px 8px; text-align: left; }
+          td { border: 1px solid #d1d5db; padding: 4px 8px; }
+          tr:nth-child(even) td { background-color: #f9fafb; }
+        </style>
+        <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 8px; margin-bottom: 16px;">
+          <div style="font-size: 17pt; font-weight: bold; color: #1e1b4b; margin: 0 0 4px;">Rapport d'Intelligence Territoriale</div>
+          <div style="color: #666; font-size: 10pt; margin: 0;">Adresse : ${address}</div>
+          <div style="color: #666; font-size: 10pt; margin: 0;">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
+        </div>
+        ${parse(reportResult) as string}
+      </div>
+    `;
 
-    // Title
-    doc.setFontSize(18);
-    doc.setTextColor(40, 40, 40);
-    doc.setFont("helvetica", "bold");
-    doc.text("Rapport d'Intelligence Territoriale", margin, y);
-    y += 10;
-
-    // Metadata
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Adresse : ${address}`, margin, y);
-    y += 6;
-    doc.text(`Date : ${new Date().toLocaleDateString()}`, margin, y);
-    y += 15;
-
-    // Content
-    doc.setTextColor(0, 0, 0);
-    const lines = reportResult.split('\n');
-    let inTable = false;
-    let tableHeaders: string[] = [];
-    let tableRows: string[][] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
-        
-        // Check for page break
-        if (y > pageHeight - margin) {
-            doc.addPage();
-            y = 20;
-        }
-
-        // Table Detection
-        if (line.startsWith('|')) {
-            if (!inTable) {
-                inTable = true;
-                // Parse headers
-                tableHeaders = line.split('|').filter(cell => cell.trim() !== '').map(cell => cleanText(cell));
-                // Skip separator line (e.g., |---|---|)
-                if (lines[i+1] && lines[i+1].trim().startsWith('|') && lines[i+1].includes('---')) {
-                    i++; 
-                }
-            } else {
-                // Parse row
-                const row = line.split('|').filter(cell => cell.trim() !== '').map(cell => cleanText(cell));
-                if (row.length > 0) {
-                    tableRows.push(row);
-                }
-            }
-            continue; // Skip standard text rendering for table lines
-        } else if (inTable) {
-            // End of table, render it
-            autoTable(doc, {
-                startY: y,
-                head: [tableHeaders],
-                body: tableRows,
-                margin: { left: margin, right: margin },
-                theme: 'grid',
-                headStyles: { fillColor: [79, 70, 229], halign: 'left' }, // Indigo-600
-                styles: { 
-                    fontSize: 9, 
-                    cellPadding: 3,
-                    overflow: 'linebreak',
-                    valign: 'middle'
-                },
-                columnStyles: {
-                    // Optional: Adjust specific columns if needed, but auto usually works
-                }
-            });
-            
-            // Update y position after table
-            y = (doc as any).lastAutoTable.finalY + 10;
-            
-            // Reset table state
-            inTable = false;
-            tableHeaders = [];
-            tableRows = [];
-        }
-
-        // Standard Text Rendering
-        let text = cleanText(line).replace(/\\n/g, ' ');
-
-        if (line.startsWith('# ')) {
-            // H1
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "bold");
-            text = text.replace(/^#\s+/, '');
-            y += 5;
-        } else if (line.startsWith('## ')) {
-            // H2
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            text = text.replace(/^##\s+/, '');
-            y += 4;
-        } else if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
-            // List item
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            text = text.replace(/^[-*]\s+/, '');
-            
-            // Draw bullet
-            doc.circle(margin + 2, y - 1.5, 1, 'F');
-            
-            // Indent text
-            const wrappedText = doc.splitTextToSize(text, maxLineWidth - 10);
-            doc.text(wrappedText, margin + 8, y);
-            y += (wrappedText.length * 5) + 2;
-            continue;
-        } else {
-            // Normal text
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-        }
-
-        if (text) {
-            const wrappedText = doc.splitTextToSize(text, maxLineWidth);
-            doc.text(wrappedText, margin, y);
-            y += (wrappedText.length * 5) + 2;
-        }
-    }
-    
-    // Render any pending table at the end of the document
-    if (inTable && tableHeaders.length > 0) {
-         autoTable(doc, {
-            startY: y,
-            head: [tableHeaders],
-            body: tableRows,
-            margin: { left: margin, right: margin },
-            theme: 'grid',
-            headStyles: { fillColor: [79, 70, 229], halign: 'left' },
-            styles: { 
-                fontSize: 9, 
-                cellPadding: 3,
-                overflow: 'linebreak',
-                valign: 'middle'
-            },
-        });
-    }
-
-    doc.save(`Rapport_Intelligence_${new Date().getTime()}.pdf`);
+    doc.html(htmlContent, {
+      callback: (pdf) => {
+        pdf.save(`Rapport_Intelligence_${Date.now()}.pdf`);
+      },
+      x: margin,
+      y: margin,
+      width: pageWidth - margin * 2,
+      windowWidth: 780,
+      autoPaging: 'text',
+    });
   };
 
   // Layout Blocks
