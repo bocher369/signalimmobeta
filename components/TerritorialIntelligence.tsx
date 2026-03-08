@@ -481,9 +481,11 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
 
       const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       const parsed = JSON.parse(resultText);
-      setReportResult(parsed.report);
-      
-      await saveTerritorialAnalysis(parsed.report, parsed.location, cadastralInfo, zoningInfo);
+      // Gemini JSON mode escapes newlines as literal \n — normalize to real newlines
+      const reportText = parsed.report.replace(/\\n/g, '\n');
+      setReportResult(reportText);
+
+      await saveTerritorialAnalysis(reportText, parsed.location, cadastralInfo, zoningInfo);
     } catch (error: any) {
         console.error("Report generation failed:", error);
         alert("Une erreur est survenue lors de la génération du rapport.");
@@ -537,7 +539,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
           <div style="color: #666; font-size: 10pt; margin: 0;">Adresse : ${address}</div>
           <div style="color: #666; font-size: 10pt; margin: 0;">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
         </div>
-        ${parse(reportResult) as string}
+        ${(parse(reportResult) as string).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '')}
       </div>
     `;
 
