@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Firebase cache
+.firebase/
+
+# Vite cache
+.vite/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,3 +1,12 @@
+export interface TerritorialData {
+  address: string;
+  coordinates?: { lat: number; lon: number };
+  generated_at: string;
+  report_markdown: string;
+  cadastral?: { section?: string; numero?: string; contenance?: string };
+  zoning?: Array<{ type?: string; libelle?: string; code?: string }>;
+}
+
 export interface GeneratedContent {
   portal: string;
   social: string;
@@ -34,6 +43,7 @@ export interface Property {
   metadata?: PropertyMetadata;
   type?: PropertyType;
   reportContent?: string;
+  territorial_data?: TerritorialData;
 }
 
 export type ViewState = 'dashboard' | 'studio' | 'history' | 'intelligence' | 'signin' | 'signup';

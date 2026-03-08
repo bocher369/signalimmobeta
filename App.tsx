@@ -8,15 +8,15 @@ import { TerritorialIntelligence } from './components/TerritorialIntelligence';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SignIn } from './components/SignIn';
 import { SignUp } from './components/SignUp';
-import { ViewState, Property } from './types';
+import { ViewState, Property, TerritorialData } from './types';
+import { deleteFileFromSupabase } from './src/utils/storage';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>('signin');
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
-    // Check active session
     const timer = setTimeout(() => {
       setLoading(false);
     }, 5000);
@@ -30,16 +30,13 @@ function App() {
       setLoading(false);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
-        // If logged out, go to signin (unless already on signup)
         setCurrentView((prev) => (prev === 'signup' ? 'signup' : 'signin'));
       } else {
-        // If logged in, go to dashboard (if currently on auth pages)
         setCurrentView((prev) => (prev === 'signin' || prev === 'signup' ? 'dashboard' : prev));
       }
     });
@@ -47,21 +44,19 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Initialisation de l'état history
   const [history, setHistory] = useState<Property[]>([]);
-  
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [linkedPropertyId, setLinkedPropertyId] = useState<string | null>(null);
 
-  // Charger l'historique depuis Supabase à la connexion
   useEffect(() => {
     const fetchProperties = async () => {
       if (!session) return;
-      
+
       const { data, error } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (data) {
         setHistory(data.map(item => ({
           id: item.id,
@@ -73,7 +68,8 @@ function App() {
           generatedContent: item.generated_content,
           metadata: item.metadata,
           type: item.property_type,
-          reportContent: item.report_content
+          reportContent: item.report_content,
+          territorial_data: item.territorial_data,
         })));
       }
     };
@@ -81,15 +77,17 @@ function App() {
   }, [session]);
 
   const handleNavigate = (view: ViewState) => {
-    // Si on navigue vers le studio via le menu, on reset la sélection pour un nouveau projet
     if (view === 'studio' && currentView !== 'studio') {
-        setSelectedProperty(null);
+      setSelectedProperty(null);
+    }
+    if (view !== 'intelligence') {
+      setLinkedPropertyId(null);
     }
     setCurrentView(view);
   };
 
-  const handleNewProperty = async (property: Property) => {
-    if (!session) return;
+  const handleNewProperty = async (property: Property): Promise<Property | null> => {
+    if (!session) return null;
 
     const { data, error } = await supabase
       .from('properties')
@@ -102,29 +100,48 @@ function App() {
         property_type: property.type,
         generated_content: property.generatedContent,
         metadata: property.metadata,
-        report_content: property.reportContent
+        report_content: property.reportContent,
+        territorial_data: property.territorial_data ?? null,
       }])
       .select()
       .single();
 
     if (data) {
-      setHistory(prev => [{
+      const savedProperty: Property = {
         ...property,
         id: data.id,
-        date: new Date(data.created_at).toLocaleDateString('fr-FR')
-      }, ...prev]);
+        date: new Date(data.created_at).toLocaleDateString('fr-FR'),
+      };
+      setHistory(prev => [savedProperty, ...prev]);
+      return savedProperty;
     }
+    return null;
+  };
+
+  const handleUpdateTerritorialData = async (propertyId: string, data: TerritorialData) => {
+    await supabase
+      .from('properties')
+      .update({ territorial_data: data })
+      .eq('id', propertyId);
+
+    setHistory(prev => prev.map(p =>
+      p.id === propertyId ? { ...p, territorial_data: data } : p
+    ));
+  };
+
+  const handleNavigateToIntelligence = (property: Property) => {
+    setSelectedProperty(property);
+    setLinkedPropertyId(property.id);
+    setCurrentView('intelligence');
   };
 
   const handleDeleteProperty = async (id: string, imagePath: string) => {
     if (!session) return;
 
-    // 1. Delete from Supabase Storage
     if (imagePath && !imagePath.startsWith('blob:')) {
       await deleteFileFromSupabase(imagePath);
     }
 
-    // 2. Delete from Supabase Database
     const { error } = await supabase
       .from('properties')
       .delete()
@@ -151,9 +168,9 @@ function App() {
   const handleSelectProperty = (property: Property) => {
     setSelectedProperty(property);
     if (property.type === 'intelligence') {
-        setCurrentView('intelligence');
+      setCurrentView('intelligence');
     } else {
-        setCurrentView('studio');
+      setCurrentView('studio');
     }
   };
 
@@ -169,34 +186,37 @@ function App() {
     <ErrorBoundary>
       <Layout currentView={(currentView === 'intelligence' ? 'dashboard' : currentView) as any} onNavigate={handleNavigate}>
         {currentView === 'dashboard' && (
-          <Dashboard 
-              onNavigateToStudio={() => { setSelectedProperty(null); setCurrentView('studio'); }} 
-              onNavigateToIntelligence={() => { setSelectedProperty(null); setCurrentView('intelligence'); }}
-              onNavigateToHistory={() => setCurrentView('history')}
-              onSelectProperty={handleSelectProperty}
-              history={history}
-              userFirstName={session?.user?.user_metadata?.first_name || session?.user?.email?.split('@')[0]}
+          <Dashboard
+            onNavigateToStudio={() => { setSelectedProperty(null); setCurrentView('studio'); }}
+            onNavigateToIntelligence={() => { setSelectedProperty(null); setCurrentView('intelligence'); }}
+            onNavigateToHistory={() => setCurrentView('history')}
+            onSelectProperty={handleSelectProperty}
+            history={history}
+            userFirstName={session?.user?.user_metadata?.first_name || session?.user?.email?.split('@')[0]}
           />
         )}
         {currentView === 'studio' && (
-          <Studio 
-              onNewProperty={handleNewProperty} 
-              initialProperty={selectedProperty}
+          <Studio
+            onNewProperty={handleNewProperty}
+            initialProperty={selectedProperty}
+            onNavigateToIntelligence={handleNavigateToIntelligence}
           />
         )}
         {currentView === 'intelligence' && (
-          <TerritorialIntelligence 
-              onNewEntry={handleNewProperty}
-              initialData={selectedProperty?.type === 'intelligence' ? selectedProperty : null}
+          <TerritorialIntelligence
+            onNewEntry={handleNewProperty}
+            initialData={selectedProperty}
+            linkedPropertyId={linkedPropertyId ?? undefined}
+            onUpdateTerritorialData={handleUpdateTerritorialData}
           />
         )}
         {currentView === 'history' && (
-          <History 
-              onBack={() => setCurrentView('dashboard')} 
-              history={history}
-              onSelectProperty={handleSelectProperty}
-              onDeleteProperty={handleDeleteProperty}
-              onClearHistory={handleClearHistory}
+          <History
+            onBack={() => setCurrentView('dashboard')}
+            history={history}
+            onSelectProperty={handleSelectProperty}
+            onDeleteProperty={handleDeleteProperty}
+            onClearHistory={handleClearHistory}
           />
         )}
         {currentView === 'signin' && (
