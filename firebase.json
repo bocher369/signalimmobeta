@@ -1,10 +1,15 @@
 {
   "hosting": {
     "site": "signalimmo-19c5e",
+    "public": "public",
     "rewrites": [
       {
         "source": "**",
-        "destination": "https://signalimmobeta-300954246626.europe-west1.run.app"
+        "run": {
+          "serviceId": "signalimmobeta",
+          "region": "europe-west1",
+          "projectId": "gen-lang-client-0467821286"
+        }
       }
     ]
   }
