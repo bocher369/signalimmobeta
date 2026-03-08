@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "signalimmo-19c5e",
     "rewrites": [
       {
         "source": "**",
