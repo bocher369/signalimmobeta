@@ -2,11 +2,13 @@
   "hosting": {
     "site": "signalimmo-19c5e",
     "public": "public",
-    "redirects": [
+    "rewrites": [
       {
         "source": "**",
-        "destination": "https://signalimmobeta-300954246626.europe-west1.run.app/:splat",
-        "type": 301
+        "run": {
+          "serviceId": "geo-estate-agent",
+          "region": "us-west1"
+        }
       }
     ]
   }
