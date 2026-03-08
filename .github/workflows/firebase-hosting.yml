@@ -31,5 +31,4 @@ jobs:
         with:
           service: geo-estate-agent
           region: us-west1
-          source: .
-
+          image: us-west1-docker.pkg.dev/signalimmo-19c5e/cloud-run-source-deploy/geo-estate-agent:latest
