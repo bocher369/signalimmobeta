@@ -3,6 +3,7 @@ import { supabase } from './src/supabaseClient';
 import Layout from './src/components/Layout';
 import Dashboard from './src/components/Dashboard';
 import LandingPage from './src/components/LandingPage';
+import AgentProfile from './src/components/AgentProfile';
 import { Studio } from './components/Studio';
 import { History } from './components/History';
 import { TerritorialIntelligence } from './components/TerritorialIntelligence';
@@ -227,6 +228,9 @@ function App() {
             linkedPropertyId={linkedPropertyId ?? undefined}
             onUpdateTerritorialData={handleUpdateTerritorialData}
           />
+        )}
+        {currentView === 'profile' && (
+          <AgentProfile session={session} onNavigate={handleNavigate} />
         )}
         {currentView === 'history' && (
           <History
