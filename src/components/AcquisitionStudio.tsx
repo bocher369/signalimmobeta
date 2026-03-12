@@ -85,13 +85,27 @@ export default function AcquisitionStudio({ session }: Props) {
   const [extractingBail, setExtractingBail] = useState(false)
   const [pdfFile, setPdfFile]             = useState<File | null>(null)
   const fileInputRef                      = useRef<HTMLInputElement>(null)
+  const [bilanMode, setBilanMode]         = useState<'manual' | 'pdf'>('manual')
+  const [extractingBilan, setExtractingBilan] = useState(false)
+  const [bilanFiles, setBilanFiles]       = useState<(File | null)[]>([null, null])
+  const bilan1Ref                         = useRef<HTMLInputElement>(null)
+  const bilan2Ref                         = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     fund_name: '', fund_address: '', fund_type: 'tabac', activity_type: '', creation_year: '',
     surface_commercial: '', surface_reserve: '',
     rent_monthly_ht: '', rent_charges: '', bail_start_date: '', bail_destination: '',
     nb_managers: '1', nb_employees: '',
-    ca_total: '', ca_tabac: '', ca_presse: '', ca_bar: '', ca_autres: '',
+    // CA commun (non-tabac ou override)
+    ca_total: '', ca_bar: '', ca_autres: '',
+    // CA Tabac/Presse — Production vendue (commissions)
+    ca_prod_tabac: '', ca_prod_presse: '', ca_prod_fdj: '', ca_prod_pmu: '',
+    ca_prod_compte_nickel: '', ca_prod_autres: '',
+    // CA Tabac/Presse — Vente de marchandises
+    ca_vente_acc_fumeur: '', ca_vente_ecigarette: '', ca_vente_cbd: '',
+    ca_vente_boissons_ea: '', ca_vente_boissons_aa: '',
+    ca_vente_boissons_psa: '', ca_vente_boissons_paa: '',
+    ca_vente_papeterie: '', ca_vente_autres: '',
     purchases: '', external_charges: '', staff_costs: '', manager_remuneration: '',
     other_charges: '', net_result: '',
     restatement_manager: '', restatement_exceptional: '', restatement_notes: '',
@@ -100,6 +114,12 @@ export default function AcquisitionStudio({ session }: Props) {
 
   const update = (field: string, value: string) =>
     setFormData(prev => ({ ...prev, [field]: value }))
+
+  const isTabac = formData.fund_type === 'tabac'
+  const caProdTotal = n(formData.ca_prod_tabac) + n(formData.ca_prod_presse) + n(formData.ca_prod_fdj) + n(formData.ca_prod_pmu) + n(formData.ca_prod_compte_nickel) + n(formData.ca_prod_autres)
+  const caVenteTotal = n(formData.ca_vente_acc_fumeur) + n(formData.ca_vente_ecigarette) + n(formData.ca_vente_cbd) + n(formData.ca_vente_boissons_ea) + n(formData.ca_vente_boissons_aa) + n(formData.ca_vente_boissons_psa) + n(formData.ca_vente_boissons_paa) + n(formData.ca_vente_papeterie) + n(formData.ca_vente_autres)
+  const caTabacComputed = caProdTotal + caVenteTotal
+  const effectiveCaTotal = isTabac ? (caTabacComputed || n(formData.ca_total)) : n(formData.ca_total)
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -177,14 +197,134 @@ Si une information est absente ou illisible, mets une chaîne vide "" pour les t
     }
   }
 
+  // ─── Extraction bilans depuis PDF ───────────────────────────────────────────
+  const extractBilanFromPdf = async () => {
+    const files = bilanFiles.filter(Boolean) as File[]
+    if (files.length === 0) return
+    setExtractingBilan(true)
+    try {
+      const toBase64 = async (f: File) => {
+        const ab = await f.arrayBuffer()
+        return btoa(String.fromCharCode(...new Uint8Array(ab)))
+      }
+      const parts: any[] = []
+      for (const f of files) {
+        parts.push({ inline_data: { mime_type: 'application/pdf', data: await toBase64(f) } })
+      }
+      parts.push({
+        text: `Tu es un expert-comptable spécialisé en fonds de commerce français (tabac-presse, CHR). Analyse ${files.length === 2 ? 'ces 2 bilans (N-1 et N-2)' : 'ce bilan (N-1)'} et retourne UNIQUEMENT un JSON valide sans markdown.
+
+Extrait les données du bilan N-1 (le plus récent) en priorité :
+{
+  "ca_total": "CA total HT en euros (nombre uniquement)",
+  "ca_prod_tabac": "CA Tabac commissions en euros",
+  "ca_prod_presse": "CA Presse commissions en euros",
+  "ca_prod_fdj": "CA FDJ commissions en euros",
+  "ca_prod_pmu": "CA PMU commissions en euros",
+  "ca_prod_compte_nickel": "CA Compte Nickel/services financiers en euros",
+  "ca_prod_autres": "CA autres commissions en euros",
+  "ca_vente_acc_fumeur": "CA accessoires fumeur en euros",
+  "ca_vente_ecigarette": "CA cigarette électronique et e-liquide en euros",
+  "ca_vente_cbd": "CA CBD en euros",
+  "ca_vente_boissons_ea": "CA boissons à emporter sans alcool en euros",
+  "ca_vente_boissons_aa": "CA boissons à emporter avec alcool en euros",
+  "ca_vente_boissons_psa": "CA boissons sur place sans alcool en euros",
+  "ca_vente_boissons_paa": "CA boissons sur place avec alcool en euros",
+  "ca_vente_papeterie": "CA papeterie en euros",
+  "ca_vente_autres": "CA autres ventes en euros",
+  "ca_bar": "CA bar/restauration en euros (si non tabac)",
+  "ca_autres": "CA autres activités en euros",
+  "purchases": "achats et variations de stocks en euros",
+  "external_charges": "charges externes totales en euros",
+  "staff_costs": "charges de personnel (hors gérant) en euros",
+  "manager_remuneration": "rémunération(s) du/des gérant(s) en euros",
+  "other_charges": "autres charges d'exploitation en euros",
+  "net_result": "résultat net comptable en euros"
+}
+
+Si une valeur est absente ou non détectable, mets "0". Mets uniquement des nombres (pas de symbole €).`
+      })
+
+      const { data, error } = await supabase.functions.invoke('gemini-generate', {
+        body: { contents: [{ parts }], model: 'gemini-2.0-flash' }
+      })
+      if (error) throw new Error(error.message)
+
+      const responseData = typeof data === 'string' ? JSON.parse(data) : data
+      const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('Réponse invalide')
+
+      const ext = JSON.parse(jsonMatch[0])
+      const pick = (k: string) => ext[k] && ext[k] !== '0' ? String(ext[k]) : ''
+      setFormData(prev => ({
+        ...prev,
+        ca_total:              pick('ca_total')              || prev.ca_total,
+        ca_prod_tabac:         pick('ca_prod_tabac')         || prev.ca_prod_tabac,
+        ca_prod_presse:        pick('ca_prod_presse')        || prev.ca_prod_presse,
+        ca_prod_fdj:           pick('ca_prod_fdj')           || prev.ca_prod_fdj,
+        ca_prod_pmu:           pick('ca_prod_pmu')           || prev.ca_prod_pmu,
+        ca_prod_compte_nickel: pick('ca_prod_compte_nickel') || prev.ca_prod_compte_nickel,
+        ca_prod_autres:        pick('ca_prod_autres')        || prev.ca_prod_autres,
+        ca_vente_acc_fumeur:   pick('ca_vente_acc_fumeur')   || prev.ca_vente_acc_fumeur,
+        ca_vente_ecigarette:   pick('ca_vente_ecigarette')   || prev.ca_vente_ecigarette,
+        ca_vente_cbd:          pick('ca_vente_cbd')          || prev.ca_vente_cbd,
+        ca_vente_boissons_ea:  pick('ca_vente_boissons_ea')  || prev.ca_vente_boissons_ea,
+        ca_vente_boissons_aa:  pick('ca_vente_boissons_aa')  || prev.ca_vente_boissons_aa,
+        ca_vente_boissons_psa: pick('ca_vente_boissons_psa') || prev.ca_vente_boissons_psa,
+        ca_vente_boissons_paa: pick('ca_vente_boissons_paa') || prev.ca_vente_boissons_paa,
+        ca_vente_papeterie:    pick('ca_vente_papeterie')    || prev.ca_vente_papeterie,
+        ca_vente_autres:       pick('ca_vente_autres')       || prev.ca_vente_autres,
+        ca_bar:                pick('ca_bar')                || prev.ca_bar,
+        ca_autres:             pick('ca_autres')             || prev.ca_autres,
+        purchases:             pick('purchases')             || prev.purchases,
+        external_charges:      pick('external_charges')      || prev.external_charges,
+        staff_costs:           pick('staff_costs')           || prev.staff_costs,
+        manager_remuneration:  pick('manager_remuneration')  || prev.manager_remuneration,
+        other_charges:         pick('other_charges')         || prev.other_charges,
+        net_result:            pick('net_result')            || prev.net_result,
+      }))
+      setBilanMode('manual')
+      setToast({ type: 'success', message: `${files.length === 2 ? '2 bilans extraits' : 'Bilan extrait'} avec succès — vérifiez les données` })
+    } catch (e: any) {
+      setToast({ type: 'error', message: e.message || 'Erreur lors de l\'extraction' })
+    } finally {
+      setExtractingBilan(false)
+    }
+  }
+
   // ─── Génération analyse Gemini ──────────────────────────────────────────────
   const generateAnalysis = async () => {
     setGenerating(true)
     try {
       const fd = formData
+      const isTabac = fd.fund_type === 'tabac'
+      const caProdTotal = n(fd.ca_prod_tabac) + n(fd.ca_prod_presse) + n(fd.ca_prod_fdj) + n(fd.ca_prod_pmu) + n(fd.ca_prod_compte_nickel) + n(fd.ca_prod_autres)
+      const caVenteTotal = n(fd.ca_vente_acc_fumeur) + n(fd.ca_vente_ecigarette) + n(fd.ca_vente_cbd) + n(fd.ca_vente_boissons_ea) + n(fd.ca_vente_boissons_aa) + n(fd.ca_vente_boissons_psa) + n(fd.ca_vente_boissons_paa) + n(fd.ca_vente_papeterie) + n(fd.ca_vente_autres)
+      const caTotal = isTabac ? (caProdTotal + caVenteTotal || n(fd.ca_total)) : n(fd.ca_total)
       const rentAnnuel = (n(fd.rent_monthly_ht) + n(fd.rent_charges)) * 12
-      const ebeComptable = n(fd.ca_total) - n(fd.purchases) - n(fd.external_charges) - n(fd.staff_costs) - n(fd.manager_remuneration) - n(fd.other_charges)
+      const ebeComptable = caTotal - n(fd.purchases) - n(fd.external_charges) - n(fd.staff_costs) - n(fd.manager_remuneration) - n(fd.other_charges)
       const ebeRetraite = ebeComptable + n(fd.restatement_manager) + n(fd.restatement_exceptional)
+
+      const caDetail = isTabac
+        ? `  PRODUCTION VENDUE (commissions) : ${fmt(caProdTotal)}
+    - Tabac : ${fd.ca_prod_tabac} €
+    - Presse : ${fd.ca_prod_presse} €
+    - FDJ : ${fd.ca_prod_fdj} €
+    - PMU : ${fd.ca_prod_pmu} €
+    - Compte-Nickel/services : ${fd.ca_prod_compte_nickel} €
+    - Autres commissions : ${fd.ca_prod_autres} €
+  VENTE DE MARCHANDISES : ${fmt(caVenteTotal)}
+    - Accessoires fumeur : ${fd.ca_vente_acc_fumeur} €
+    - Cigarette élec./e-liquide : ${fd.ca_vente_ecigarette} €
+    - CBD : ${fd.ca_vente_cbd} €
+    - Boissons à emporter (SA) : ${fd.ca_vente_boissons_ea} €
+    - Boissons à emporter (AA) : ${fd.ca_vente_boissons_aa} €
+    - Boissons sur place (SA) : ${fd.ca_vente_boissons_psa} €
+    - Boissons sur place (AA) : ${fd.ca_vente_boissons_paa} €
+    - Papeterie : ${fd.ca_vente_papeterie} €
+    - Autres ventes : ${fd.ca_vente_autres} €`
+        : `  - Bar/PMU : ${fd.ca_bar} €\n  - Autres : ${fd.ca_autres} €`
 
       const prompt = `Tu es un expert en cession de fonds de commerce en France. Analyse ce dossier et retourne UNIQUEMENT un JSON valide (pas de markdown, pas de texte avant ou après).
 
@@ -193,7 +333,7 @@ DONNÉES DU FONDS :
 - Adresse : ${fd.fund_address}
 - Type : ${fd.fund_type}
 - Activité : ${fd.activity_type}
-- Année création : ${fd.creation_year}
+- Année début d'activité : ${fd.creation_year}
 - Surface commerciale : ${fd.surface_commercial} m²
 - Surface réserve : ${fd.surface_reserve} m²
 - Loyer mensuel HT : ${fd.rent_monthly_ht} €
@@ -206,8 +346,8 @@ DONNÉES DU FONDS :
 - Valeur stock : ${fd.stock_value} €
 
 COMPTE DE RÉSULTAT N-1 :
-- CA Total : ${fd.ca_total} €
-  (dont Tabac: ${fd.ca_tabac}€, Presse: ${fd.ca_presse}€, Bar: ${fd.ca_bar}€, Autres: ${fd.ca_autres}€)
+- CA Total : ${fmt(caTotal)}
+${caDetail}
 - Achats/marchandises : ${fd.purchases} €
 - Charges externes : ${fd.external_charges} €
 - Charges personnel : ${fd.staff_costs} €
@@ -550,28 +690,142 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
 
           {/* CA ventilé */}
           <div className={cardClass}>
-            <p className="text-xs text-[#9E9E9E] uppercase tracking-wider mb-4" style={MONO}>
-              CHIFFRE D'AFFAIRES VENTILÉ
-            </p>
-            <Field label="CA Total N-1 (€)">
-              <input className={inputClass + ' text-lg font-bold'} style={SANS}
-                value={formData.ca_total}
-                onChange={e => update('ca_total', e.target.value)} placeholder="385 000" />
-            </Field>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              {[
-                ['ca_tabac',  'Tabac (€)'],
-                ['ca_presse', 'Presse (€)'],
-                ['ca_bar',    'Bar/PMU (€)'],
-                ['ca_autres', 'Autres (€)'],
-              ].map(([key, label]) => (
-                <Field key={key} label={label}>
-                  <input className={inputClass} style={SANS}
-                    value={formData[key as keyof typeof formData]}
-                    onChange={e => update(key, e.target.value)} placeholder="0" />
-                </Field>
-              ))}
-            </div>
+              {/* Header + toggle import bilan */}
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-[#9E9E9E] uppercase tracking-wider" style={MONO}>CHIFFRE D'AFFAIRES VENTILÉ</p>
+                <div className="flex items-center gap-1 bg-[#F0EFE9] rounded-full p-1 border border-[#E8E6DF]">
+                  <button onClick={() => setBilanMode('manual')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bilanMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                    style={SANS}>
+                    <Pencil size={11} /> Manuel
+                  </button>
+                  <button onClick={() => setBilanMode('pdf')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bilanMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                    style={SANS}>
+                    <Upload size={11} /> Importer les bilans
+                  </button>
+                </div>
+              </div>
+
+              {/* Zone import bilan PDF */}
+              {bilanMode === 'pdf' && (
+                <div className="mb-5 space-y-3">
+                  <input ref={bilan1Ref} type="file" accept="application/pdf" className="hidden"
+                    onChange={e => setBilanFiles(prev => [e.target.files?.[0] ?? null, prev[1]])} />
+                  <input ref={bilan2Ref} type="file" accept="application/pdf" className="hidden"
+                    onChange={e => setBilanFiles(prev => [prev[0], e.target.files?.[0] ?? null])} />
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { ref: bilan1Ref, file: bilanFiles[0], label: 'Bilan N-1 (requis)' },
+                      { ref: bilan2Ref, file: bilanFiles[1], label: 'Bilan N-2 (optionnel)' },
+                    ].map(({ ref, file, label }) => (
+                      <div key={label}
+                        onClick={() => ref.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors group ${file ? 'border-[#3BAF7E] bg-[#E8F7F1]' : 'border-[#E8E6DF] hover:border-[#3BAF7E]'}`}>
+                        {file ? <CheckCircle size={18} className="mx-auto text-[#3BAF7E] mb-1" /> : <Upload size={18} className="mx-auto text-[#9E9E9E] group-hover:text-[#3BAF7E] transition-colors mb-1" />}
+                        <p className="text-[10px] text-[#9E9E9E] mb-0.5" style={MONO}>{label}</p>
+                        <p className="text-xs font-medium text-[#1A1A1A] truncate" style={SANS}>{file ? file.name : 'Cliquer pour sélectionner'}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {bilanFiles[0] && (
+                    <button onClick={extractBilanFromPdf} disabled={extractingBilan}
+                      className="w-full flex items-center justify-center gap-2 bg-[#0A1628] text-white font-bold px-6 py-3 rounded-full hover:bg-[#1a2a42] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      style={SANS}>
+                      {extractingBilan
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Extraction en cours...</>
+                        : <><Sparkles size={14} /> Extraire les données avec Gemini {bilanFiles[1] ? '(2 bilans)' : '(1 bilan)'}</>}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* CA Total — affiché calculé pour tabac, saisi pour autres */}
+              {isTabac ? (
+                <div className="flex items-center justify-between bg-[#0A1628] rounded-xl px-5 py-3 mb-5">
+                  <span className="text-xs text-[#3BAF7E]" style={MONO}>CA TOTAL CALCULÉ</span>
+                  <span className="text-2xl font-bold text-white" style={DRAMA}>{fmt(caTabacComputed)}</span>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <Field label="CA Total N-1 (€)">
+                    <input className={inputClass + ' text-lg font-bold'} style={SANS}
+                      value={formData.ca_total} onChange={e => update('ca_total', e.target.value)} placeholder="385 000" />
+                  </Field>
+                </div>
+              )}
+
+              {/* Tabac/Presse — détail par sous-catégorie */}
+              {isTabac && (
+                <div className="space-y-4">
+                  {/* Production vendue */}
+                  <div className="bg-[#F0EFE9] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider" style={MONO}>PRODUCTION VENDUE — Commissions</p>
+                      <span className="text-sm font-bold text-[#3BAF7E]" style={DRAMA}>{fmt(caProdTotal)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        ['ca_prod_tabac',         'Tabac'],
+                        ['ca_prod_presse',        'Presse'],
+                        ['ca_prod_fdj',           'FDJ'],
+                        ['ca_prod_pmu',           'PMU'],
+                        ['ca_prod_compte_nickel', 'Compte-Nickel / Services'],
+                        ['ca_prod_autres',        'Autres commissions'],
+                      ].map(([key, label]) => (
+                        <Field key={key} label={label + ' (€)'}>
+                          <input className={inputClass} style={SANS}
+                            value={formData[key as keyof typeof formData]}
+                            onChange={e => update(key, e.target.value)} placeholder="0" />
+                        </Field>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Vente de marchandises */}
+                  <div className="bg-[#F0EFE9] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider" style={MONO}>VENTE DE MARCHANDISES</p>
+                      <span className="text-sm font-bold text-[#3BAF7E]" style={DRAMA}>{fmt(caVenteTotal)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        ['ca_vente_acc_fumeur',   'Accessoires fumeur'],
+                        ['ca_vente_ecigarette',   'Cig. élec. / E-liquide'],
+                        ['ca_vente_cbd',          'CBD'],
+                        ['ca_vente_boissons_ea',  'Boissons emporter SA'],
+                        ['ca_vente_boissons_aa',  'Boissons emporter AA'],
+                        ['ca_vente_boissons_psa', 'Boissons place SA'],
+                        ['ca_vente_boissons_paa', 'Boissons place AA'],
+                        ['ca_vente_papeterie',    'Papeterie'],
+                        ['ca_vente_autres',       'Autres ventes'],
+                      ].map(([key, label]) => (
+                        <Field key={key} label={label + ' (€)'}>
+                          <input className={inputClass} style={SANS}
+                            value={formData[key as keyof typeof formData]}
+                            onChange={e => update(key, e.target.value)} placeholder="0" />
+                        </Field>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Autres types — ventilation simple */}
+              {!isTabac && (
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    ['ca_bar',    'Bar/PMU (€)'],
+                    ['ca_autres', 'Autres (€)'],
+                  ].map(([key, label]) => (
+                    <Field key={key} label={label}>
+                      <input className={inputClass} style={SANS}
+                        value={formData[key as keyof typeof formData]}
+                        onChange={e => update(key, e.target.value)} placeholder="0" />
+                    </Field>
+                  ))}
+                </div>
+              )}
           </div>
 
           {/* Charges N-1 */}
