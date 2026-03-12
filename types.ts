@@ -46,7 +46,7 @@ export interface Property {
   territorial_data?: TerritorialData;
 }
 
-export type ViewState = 'landing' | 'dashboard' | 'studio' | 'history' | 'intelligence' | 'signin' | 'signup' | 'profile';
+export type ViewState = 'landing' | 'dashboard' | 'studio' | 'history' | 'intelligence' | 'signin' | 'signup' | 'profile' | 'acquisition';
 
 export type OutputChannel = 'portal' | 'social' | 'email' | 'score';
 

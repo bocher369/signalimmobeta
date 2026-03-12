@@ -32,16 +32,15 @@ const LogoIcon = () => (
 )
 
 const NAV_ITEMS = [
-  { view: 'dashboard',    icon: <LayoutDashboard size={16} />, label: 'Tableau de bord' },
-  { view: 'studio',       icon: <Sparkles        size={16} />, label: 'Studio Annonces' },
-  { view: 'intelligence', icon: <MapPin           size={16} />, label: 'Intelligence'     },
-  { view: 'history',      icon: <History          size={16} />, label: 'Historique'       },
-  { view: 'profile',      icon: <User             size={16} />, label: 'Profil Agence'    },
+  { view: 'dashboard',    icon: <LayoutDashboard size={16} />, label: 'Tableau de bord'    },
+  { view: 'studio',       icon: <Sparkles        size={16} />, label: 'Studio Annonces'    },
+  { view: 'intelligence', icon: <MapPin           size={16} />, label: 'Intelligence'       },
+  { view: 'acquisition',  icon: <FileText         size={16} />, label: 'Dossiers Acquisition' },
+  { view: 'history',      icon: <History          size={16} />, label: 'Historique'         },
+  { view: 'profile',      icon: <User             size={16} />, label: 'Profil Agence'      },
 ]
 
-const SOON_ITEMS = [
-  { view: 'acquisition', icon: <FileText size={16} />, label: 'Dossiers Acquisition' },
-]
+const SOON_ITEMS: { view: string; icon: React.ReactNode; label: string }[] = []
 
 export default function Layout({ session, currentView, onNavigate, onSignOut, children }: Props) {
   return (

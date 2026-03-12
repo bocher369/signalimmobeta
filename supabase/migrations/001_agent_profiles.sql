@@ -20,6 +20,7 @@ create table if not exists public.agent_profiles (
 
 alter table public.agent_profiles enable row level security;
 
+drop policy if exists "Users can manage their own profile" on public.agent_profiles;
 create policy "Users can manage their own profile"
   on public.agent_profiles
   for all
@@ -34,6 +35,7 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists on_agent_profile_updated on public.agent_profiles;
 create trigger on_agent_profile_updated
   before update on public.agent_profiles
   for each row execute procedure public.handle_updated_at();

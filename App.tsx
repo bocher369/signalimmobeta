@@ -5,6 +5,7 @@ import Dashboard from './src/components/Dashboard';
 import LandingPage from './src/components/LandingPage';
 import AgentProfile from './src/components/AgentProfile';
 import { Studio } from './components/Studio';
+import AcquisitionStudio from './src/components/AcquisitionStudio';
 import { History } from './components/History';
 import { TerritorialIntelligence } from './components/TerritorialIntelligence';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -231,6 +232,9 @@ function App() {
         )}
         {currentView === 'profile' && (
           <AgentProfile session={session} onNavigate={handleNavigate} />
+        )}
+        {currentView === 'acquisition' && (
+          <AcquisitionStudio session={session} onNavigate={handleNavigate} />
         )}
         {currentView === 'history' && (
           <History
