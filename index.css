@@ -2,24 +2,73 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-dramatic: "Playfair Display", ui-serif, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563EB;
-  --color-brand-700: #1d4ed8;
-  --color-brand-900: #1e3a8a;
+  --color-brand-50:  #edfaf4;
+  --color-brand-100: #d0f2e3;
+  --color-brand-200: #a3e5c8;
+  --color-brand-300: #6dd4a8;
+  --color-brand-400: #3fc18a;
+  --color-brand-500: #3BAF7E;
+  --color-brand-600: #2A8F62;
+  --color-brand-700: #1f6e4b;
+  --color-brand-800: #164f36;
+  --color-brand-900: #0A1628;
 
-  --color-secondary-50: #f9fafb;
-  --color-secondary-100: #f3f4f6;
-  --color-secondary-800: #1f2937;
-  --color-secondary-900: #111827;
+  --color-night: #0A1628;
+  --color-night-light: #0F2040;
+  --color-accent: #3BAF7E;
+  --color-accent-dark: #2A8F62;
+  --color-accent-light: #E8F7F1;
+  --color-surface: #F0EFE9;
+  --color-card: #FFFFFF;
+  --color-border: #E8E6DF;
+  --color-ink: #1A1A1A;
+  --color-ink-2: #6B6B6B;
+  --color-ink-3: #9E9E9E;
 }
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-[#F0EFE9] text-[#1A1A1A] antialiased;
+    font-family: var(--font-sans);
   }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: #E8E6DF; border-radius: 20px; }
+}
+
+@layer base {
+  .prose table {
+    width: 100%;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid #E8E6DF;
+    font-size: 0.9rem;
+  }
+  .prose thead { background-color: #F0EFE9; }
+  .prose th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #1A1A1A;
+    border-bottom: 1px solid #E8E6DF;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .prose td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #F0EFE9;
+    color: #6B6B6B;
+  }
+  .prose tr:last-child td { border-bottom: none; }
+  .prose tr:hover td { background-color: #F0EFE9; }
 }

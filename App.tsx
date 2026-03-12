@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from './src/supabaseClient';
-import { Layout } from './components/Layout';
-import { Dashboard } from './components/Dashboard';
+import Layout from './src/components/Layout';
+import Dashboard from './src/components/Dashboard';
+import LandingPage from './src/components/LandingPage';
 import { Studio } from './components/Studio';
 import { History } from './components/History';
 import { TerritorialIntelligence } from './components/TerritorialIntelligence';
@@ -12,7 +13,7 @@ import { ViewState, Property, TerritorialData } from './types';
 import { deleteFileFromSupabase } from './src/utils/storage';
 
 function App() {
-  const [currentView, setCurrentView] = useState<ViewState>('signin');
+  const [currentView, setCurrentView] = useState<ViewState>('landing');
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,9 +36,13 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
-        setCurrentView((prev) => (prev === 'signup' ? 'signup' : 'signin'));
+        setCurrentView('landing');
       } else {
-        setCurrentView((prev) => (prev === 'signin' || prev === 'signup' ? 'dashboard' : prev));
+        setCurrentView((prev) =>
+          prev === 'signin' || prev === 'signup' || prev === 'landing'
+            ? 'dashboard'
+            : prev
+        );
       }
     });
 
@@ -52,7 +57,7 @@ function App() {
     const fetchProperties = async () => {
       if (!session) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
@@ -76,20 +81,26 @@ function App() {
     fetchProperties();
   }, [session]);
 
-  const handleNavigate = (view: ViewState) => {
-    if (view === 'studio' && currentView !== 'studio') {
+  const handleNavigate = (view: string) => {
+    const v = view as ViewState;
+    if (v === 'studio' && currentView !== 'studio') {
       setSelectedProperty(null);
     }
-    if (view !== 'intelligence') {
+    if (v !== 'intelligence') {
       setLinkedPropertyId(null);
     }
-    setCurrentView(view);
+    setCurrentView(v);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setCurrentView('landing');
   };
 
   const handleNewProperty = async (property: Property): Promise<Property | null> => {
     if (!session) return null;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('properties')
       .insert([{
         user_id: session.user.id,
@@ -174,26 +185,33 @@ function App() {
     }
   };
 
+  // ─── Loading ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F0EFE9]">
+        <div className="w-8 h-8 border-2 border-[#3BAF7E] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  // ─── No session ──────────────────────────────────────────────────────────
+  if (!session) {
+    if (currentView === 'signin') return <SignIn onNavigate={handleNavigate} />;
+    if (currentView === 'signup') return <SignUp onNavigate={handleNavigate} />;
+    return <LandingPage onGetStarted={() => setCurrentView('signin')} />;
+  }
+
+  // ─── Session active ───────────────────────────────────────────────────────
   return (
     <ErrorBoundary>
-      <Layout currentView={(currentView === 'intelligence' ? 'dashboard' : currentView) as any} onNavigate={handleNavigate}>
+      <Layout
+        session={session}
+        currentView={currentView}
+        onNavigate={handleNavigate}
+        onSignOut={handleSignOut}
+      >
         {currentView === 'dashboard' && (
-          <Dashboard
-            onNavigateToStudio={() => { setSelectedProperty(null); setCurrentView('studio'); }}
-            onNavigateToIntelligence={() => { setSelectedProperty(null); setCurrentView('intelligence'); }}
-            onNavigateToHistory={() => setCurrentView('history')}
-            onSelectProperty={handleSelectProperty}
-            history={history}
-            userFirstName={session?.user?.user_metadata?.first_name || session?.user?.email?.split('@')[0]}
-          />
+          <Dashboard session={session} onNavigate={handleNavigate} />
         )}
         {currentView === 'studio' && (
           <Studio
@@ -218,12 +236,6 @@ function App() {
             onDeleteProperty={handleDeleteProperty}
             onClearHistory={handleClearHistory}
           />
-        )}
-        {currentView === 'signin' && (
-          <SignIn onNavigate={handleNavigate} />
-        )}
-        {currentView === 'signup' && (
-          <SignUp onNavigate={handleNavigate} />
         )}
       </Layout>
     </ErrorBoundary>
