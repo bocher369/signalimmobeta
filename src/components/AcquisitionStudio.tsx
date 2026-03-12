@@ -581,14 +581,14 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
               <div className="flex items-center gap-1 bg-[#F0EFE9] rounded-full p-1 border border-[#E8E6DF]">
                 <button
                   onClick={() => setBailMode('manual')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bailMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${bailMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                   style={SANS}
                 >
                   <Pencil size={11} /> Manuel
                 </button>
                 <button
                   onClick={() => setBailMode('pdf')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bailMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${bailMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                   style={SANS}
                 >
                   <Upload size={11} /> Importer le bail
@@ -695,12 +695,12 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
                 <p className="text-xs text-[#9E9E9E] uppercase tracking-wider" style={MONO}>CHIFFRE D'AFFAIRES VENTILÉ</p>
                 <div className="flex items-center gap-1 bg-[#F0EFE9] rounded-full p-1 border border-[#E8E6DF]">
                   <button onClick={() => setBilanMode('manual')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bilanMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${bilanMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                     style={SANS}>
                     <Pencil size={11} /> Manuel
                   </button>
                   <button onClick={() => setBilanMode('pdf')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bilanMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${bilanMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                     style={SANS}>
                     <Upload size={11} /> Importer les bilans
                   </button>
