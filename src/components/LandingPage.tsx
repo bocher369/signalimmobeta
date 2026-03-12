@@ -72,7 +72,7 @@ export default function LandingPage({ onGetStarted }: Props) {
           </div>
 
           <div className="hidden md:flex items-center gap-10">
-            {['FONCTIONNALITÉS', 'TARIFS', 'CONNEXION'].map((link) => (
+            {['FONCTIONNALITÉS', 'TARIFS'].map((link) => (
               <a
                 key={link}
                 href="#"
@@ -82,6 +82,13 @@ export default function LandingPage({ onGetStarted }: Props) {
                 {link}
               </a>
             ))}
+            <button
+              onClick={() => onGetStarted?.()}
+              className="text-xs tracking-widest text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+              style={MONO}
+            >
+              CONNEXION
+            </button>
           </div>
 
           <button

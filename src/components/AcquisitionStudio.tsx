@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
-  FileText, TrendingUp, BarChart3, ExternalLink,
-  ChevronRight, ChevronLeft, Check, AlertTriangle, Sparkles,
-  CheckCircle, AlertCircle,
+  ExternalLink, ChevronRight, ChevronLeft, Check, AlertTriangle, Sparkles,
+  CheckCircle, AlertCircle, Upload, Pencil,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
@@ -24,7 +23,6 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const n = (v: any) => parseFloat(v) || 0
 const fmt = (v: number) => Math.round(v).toLocaleString('fr-FR') + ' €'
-const pct = (v: number, tot: number) => tot > 0 ? (v / tot * 100).toFixed(1) + '%' : '—'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -83,6 +81,10 @@ export default function AcquisitionStudio({ session }: Props) {
   const [slidesUrl, setSlidesUrl]         = useState<string | null>(null)
   const [acquisitionId, setAcquisitionId] = useState<string | null>(null)
   const [toast, setToast]                 = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [bailMode, setBailMode]           = useState<'manual' | 'pdf'>('manual')
+  const [extractingBail, setExtractingBail] = useState(false)
+  const [pdfFile, setPdfFile]             = useState<File | null>(null)
+  const fileInputRef                      = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     fund_name: '', fund_address: '', fund_type: 'tabac', activity_type: '', creation_year: '',
@@ -105,6 +107,75 @@ export default function AcquisitionStudio({ session }: Props) {
     const t = setTimeout(() => setToast(null), 3000)
     return () => clearTimeout(t)
   }, [toast])
+
+  // ─── Extraction bail depuis PDF ─────────────────────────────────────────────
+  const extractBailFromPdf = async () => {
+    if (!pdfFile) return
+    setExtractingBail(true)
+    try {
+      const arrayBuffer = await pdfFile.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+
+      const { data, error } = await supabase.functions.invoke('gemini-generate', {
+        body: {
+          contents: [{
+            parts: [
+              {
+                inline_data: {
+                  mime_type: 'application/pdf',
+                  data: base64,
+                }
+              },
+              {
+                text: `Tu es un expert en baux commerciaux français. Analyse ce bail et retourne UNIQUEMENT un JSON valide sans markdown.
+
+Extrait exactement ces informations :
+{
+  "surface_commercial": "surface principale en m² (nombre uniquement)",
+  "surface_reserve": "surface réserve/stockage en m² (nombre uniquement, 0 si absent)",
+  "rent_monthly_ht": "loyer mensuel hors taxes en euros (nombre uniquement)",
+  "rent_charges": "charges locatives mensuelles en euros (nombre uniquement, 0 si absent)",
+  "bail_destination": "activités autorisées par le bail (texte court)",
+  "bail_start_date": "date de prise d'effet du bail au format YYYY-MM-DD",
+  "nb_managers": "nombre de gérants mentionnés (1 si non précisé)",
+  "nb_employees": "nombre d'employés mentionnés (0 si non précisé)"
+}
+
+Si une information est absente ou illisible, mets une chaîne vide "" pour les textes et "0" pour les nombres.`
+              }
+            ]
+          }],
+          model: 'gemini-2.0-flash',
+        }
+      })
+
+      if (error) throw new Error(error.message)
+
+      const responseData = typeof data === 'string' ? JSON.parse(data) : data
+      const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('Réponse invalide')
+
+      const extracted = JSON.parse(jsonMatch[0])
+      setFormData(prev => ({
+        ...prev,
+        surface_commercial: extracted.surface_commercial || prev.surface_commercial,
+        surface_reserve:    extracted.surface_reserve    || prev.surface_reserve,
+        rent_monthly_ht:    extracted.rent_monthly_ht    || prev.rent_monthly_ht,
+        rent_charges:       extracted.rent_charges       || prev.rent_charges,
+        bail_destination:   extracted.bail_destination   || prev.bail_destination,
+        bail_start_date:    extracted.bail_start_date    || prev.bail_start_date,
+        nb_managers:        extracted.nb_managers        || prev.nb_managers,
+        nb_employees:       extracted.nb_employees       || prev.nb_employees,
+      }))
+      setBailMode('manual')
+      setToast({ type: 'success', message: 'Informations extraites du bail avec succès !' })
+    } catch (e: any) {
+      setToast({ type: 'error', message: e.message || 'Erreur lors de l\'extraction' })
+    } finally {
+      setExtractingBail(false)
+    }
+  }
 
   // ─── Génération analyse Gemini ──────────────────────────────────────────────
   const generateAnalysis = async () => {
@@ -344,19 +415,89 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
                     placeholder="Détail tabac" />
                 </Field>
               </div>
-              <Field label="Année de création">
+              <Field label="Année de début d'activité">
                 <input className={inputClass} style={SANS} value={formData.creation_year}
                   onChange={e => update('creation_year', e.target.value)}
                   placeholder="2005" />
               </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Nombre de gérants">
+                  <input className={inputClass} style={SANS} value={formData.nb_managers}
+                    onChange={e => update('nb_managers', e.target.value)} placeholder="1" />
+                </Field>
+                <Field label="Nombre d'employés">
+                  <input className={inputClass} style={SANS} value={formData.nb_employees}
+                    onChange={e => update('nb_employees', e.target.value)} placeholder="2" />
+                </Field>
+              </div>
             </div>
           </div>
 
           {/* Local & Bail */}
           <div className={cardClass}>
-            <p className="text-xs text-[#9E9E9E] uppercase tracking-wider mb-4" style={MONO}>
-              LOCAL & BAIL
-            </p>
+            {/* Header + toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-[#9E9E9E] uppercase tracking-wider" style={MONO}>LOCAL & BAIL</p>
+              <div className="flex items-center gap-1 bg-[#F0EFE9] rounded-full p-1 border border-[#E8E6DF]">
+                <button
+                  onClick={() => setBailMode('manual')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bailMode === 'manual' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                  style={SANS}
+                >
+                  <Pencil size={11} /> Manuel
+                </button>
+                <button
+                  onClick={() => setBailMode('pdf')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${bailMode === 'pdf' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
+                  style={SANS}
+                >
+                  <Upload size={11} /> Importer le bail
+                </button>
+              </div>
+            </div>
+
+            {/* Mode PDF */}
+            {bailMode === 'pdf' && (
+              <div className="mb-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={e => setPdfFile(e.target.files?.[0] ?? null)}
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#E8E6DF] hover:border-[#3BAF7E] rounded-xl p-6 text-center cursor-pointer transition-colors group"
+                >
+                  <Upload size={22} className="mx-auto text-[#9E9E9E] group-hover:text-[#3BAF7E] transition-colors mb-2" />
+                  {pdfFile ? (
+                    <p className="text-sm text-[#1A1A1A] font-medium" style={SANS}>{pdfFile.name}</p>
+                  ) : (
+                    <p className="text-sm text-[#9E9E9E]" style={SANS}>Cliquez pour sélectionner le bail (PDF)</p>
+                  )}
+                </div>
+                {pdfFile && (
+                  <button
+                    onClick={extractBailFromPdf}
+                    disabled={extractingBail}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-[#0A1628] text-white font-bold px-6 py-3 rounded-full hover:bg-[#1a2a42] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    style={SANS}
+                  >
+                    {extractingBail ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Extraction en cours...
+                      </>
+                    ) : (
+                      <><Sparkles size={14} /> Extraire les informations avec Gemini</>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Champs (toujours visibles, pré-remplis si PDF extrait) */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Surface commerciale (m²)">
@@ -385,16 +526,6 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
                 <input className={inputClass} style={SANS} type="date" value={formData.bail_start_date}
                   onChange={e => update('bail_start_date', e.target.value)} />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Nombre de gérants">
-                  <input className={inputClass} style={SANS} value={formData.nb_managers}
-                    onChange={e => update('nb_managers', e.target.value)} placeholder="1" />
-                </Field>
-                <Field label="Nombre d'employés">
-                  <input className={inputClass} style={SANS} value={formData.nb_employees}
-                    onChange={e => update('nb_employees', e.target.value)} placeholder="2" />
-                </Field>
-              </div>
             </div>
           </div>
 
