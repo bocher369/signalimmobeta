@@ -172,6 +172,10 @@ export default function AcquisitionStudio({ session }: Props) {
   // ─── Extraction bail depuis PDF ─────────────────────────────────────────────
   const extractBailFromPdf = async () => {
     if (!pdfFile) return
+    if (pdfFile.size > 4 * 1024 * 1024) {
+      setToast({ type: 'error', message: 'PDF trop volumineux (max 4 Mo). Compressez-le avant import.' })
+      return
+    }
     setExtractingBail(true)
     try {
       const arrayBuffer = await pdfFile.arrayBuffer()
@@ -246,6 +250,11 @@ Si une information est absente ou illisible, mets une chaîne vide "" pour les t
   const extractBilanFromPdf = async () => {
     const files = bilanFiles.filter(Boolean) as File[]
     if (files.length === 0) return
+    const oversized = files.find(f => f.size > 3 * 1024 * 1024)
+    if (oversized) {
+      setToast({ type: 'error', message: `"${oversized.name}" est trop volumineux (max 3 Mo par bilan). Compressez-le avant import.` })
+      return
+    }
     setExtractingBilan(true)
     try {
       const toBase64 = async (f: File) => {
