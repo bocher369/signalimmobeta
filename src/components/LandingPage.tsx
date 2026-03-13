@@ -84,7 +84,7 @@ export default function LandingPage({ onGetStarted }: Props) {
             ))}
             <button
               onClick={() => onGetStarted?.()}
-              className="text-xs tracking-widest text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+              className="text-xs tracking-widest text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors cursor-pointer"
               style={MONO}
             >
               CONNEXION
