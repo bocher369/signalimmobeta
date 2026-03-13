@@ -78,6 +78,25 @@ function Stepper({ current }: { current: number }) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
+// Direct fetch to Edge Function (bypasses Supabase SDK quirks with large bodies)
+async function callGemini(body: object, supabaseClient: typeof supabase): Promise<any> {
+  const url = (supabaseClient as any).supabaseUrl + '/functions/v1/gemini-generate'
+  const key = (supabaseClient as any).supabaseKey
+  const { data: { session } } = await supabaseClient.auth.getSession()
+  const token = session?.access_token ?? key
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'apikey': key,
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`)
+  return res.json()
+}
+
 export default function AcquisitionStudio({ session }: Props) {
   const [step, setStep]                   = useState<1 | 2 | 3 | 4>(1)
   const [generating, setGenerating]       = useState(false)
@@ -184,46 +203,20 @@ export default function AcquisitionStudio({ session }: Props) {
       for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
       const base64 = btoa(binary)
 
-      const { data, error } = await supabase.functions.invoke('gemini-generate', {
-        body: {
-          contents: [{
-            parts: [
-              {
-                inline_data: {
-                  mime_type: 'application/pdf',
-                  data: base64,
-                }
-              },
-              {
-                text: `Tu es un expert en baux commerciaux français. Analyse ce bail et retourne UNIQUEMENT un JSON valide sans markdown.
-
-Extrait exactement ces informations :
-{
-  "surface_commercial": "surface principale en m² (nombre uniquement)",
-  "surface_reserve": "surface réserve/stockage en m² (nombre uniquement, 0 si absent)",
-  "rent_monthly_ht": "loyer mensuel hors taxes en euros (nombre uniquement)",
-  "rent_charges": "charges locatives mensuelles en euros (nombre uniquement, 0 si absent)",
-  "bail_destination": "activités autorisées par le bail (texte court)",
-  "bail_start_date": "date de prise d'effet du bail au format YYYY-MM-DD",
-  "nb_managers": "nombre de gérants mentionnés (1 si non précisé)",
-  "nb_employees": "nombre d'employés mentionnés (0 si non précisé)"
-}
-
-Si une information est absente ou illisible, mets une chaîne vide "" pour les textes et "0" pour les nombres.`
-              }
-            ]
-          }],
-          model: 'gemini-2.0-flash',
-        }
-      })
-
-      if (error) throw new Error(error.message)
-
-      const responseData = typeof data === 'string' ? JSON.parse(data) : data
-      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : PDF trop volumineux ou format non supporté.`)
+      const responseData = await callGemini({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: 'application/pdf', data: base64 } },
+            { text: `Tu es un expert en baux commerciaux français. Analyse ce bail et retourne UNIQUEMENT un JSON valide sans markdown.\n\nExtrait exactement ces informations :\n{\n  "surface_commercial": "surface principale en m² (nombre uniquement)",\n  "surface_reserve": "surface réserve/stockage en m² (nombre uniquement, 0 si absent)",\n  "rent_monthly_ht": "loyer mensuel hors taxes en euros (nombre uniquement)",\n  "rent_charges": "charges locatives mensuelles en euros (nombre uniquement, 0 si absent)",\n  "bail_destination": "activités autorisées par le bail (texte court)",\n  "bail_start_date": "date de prise d'effet du bail au format YYYY-MM-DD",\n  "nb_managers": "nombre de gérants mentionnés (1 si non précisé)",\n  "nb_employees": "nombre d'employés mentionnés (0 si non précisé)"\n}\n\nSi une information est absente ou illisible, mets une chaîne vide "" pour les textes et "0" pour les nombres.` }
+          ]
+        }],
+        model: 'gemini-2.0-flash',
+      }, supabase)
+      console.log('Function response:', JSON.stringify(responseData)?.substring(0, 200))
+      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : ${responseData.detail?.substring(0, 150)}`)
       const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
       const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) throw new Error('Réponse invalide')
+      if (!jsonMatch) throw new Error('Réponse invalide — raw: ' + raw.substring(0, 100))
 
       const extracted = JSON.parse(jsonMatch[0])
       setFormData(prev => ({
@@ -302,13 +295,8 @@ Extrait les données du bilan N-1 (le plus récent) en priorité :
 Si une valeur est absente ou non détectable, mets "0". Mets uniquement des nombres (pas de symbole €).`
       })
 
-      const { data, error } = await supabase.functions.invoke('gemini-generate', {
-        body: { contents: [{ parts }], model: 'gemini-2.0-flash' }
-      })
-      if (error) throw new Error(error.message)
-
-      const responseData = typeof data === 'string' ? JSON.parse(data) : data
-      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : PDFs trop volumineux ou format non supporté.`)
+      const responseData = await callGemini({ contents: [{ parts }], model: 'gemini-2.0-flash' }, supabase)
+      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : ${responseData.detail?.substring(0, 150)}`)
       const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
       const jsonMatch = raw.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('Réponse invalide')
