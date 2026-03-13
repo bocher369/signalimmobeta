@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ExternalLink, ChevronRight, ChevronLeft, Check, AlertTriangle, Sparkles,
-  CheckCircle, AlertCircle, Upload, Pencil,
+  CheckCircle, AlertCircle, Upload, Pencil, Search, Loader2, MapPin,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
@@ -18,6 +18,11 @@ const cardClass   = 'bg-white rounded-2xl p-6 border border-[#E8E6DF]'
 interface Props {
   session: any
   onNavigate: (view: string) => void
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface AddressFeature {
+  properties: { label: string; city: string; postcode: string }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,6 +95,9 @@ export default function AcquisitionStudio({ session }: Props) {
   const [bilanFiles, setBilanFiles]       = useState<(File | null)[]>([null, null])
   const bilan1Ref                         = useRef<HTMLInputElement>(null)
   const bilan2Ref                         = useRef<HTMLInputElement>(null)
+  const [addrSuggestions, setAddrSuggestions] = useState<AddressFeature[]>([])
+  const [showAddrSuggestions, setShowAddrSuggestions] = useState(false)
+  const [isSearchingAddr, setIsSearchingAddr] = useState(false)
 
   const [formData, setFormData] = useState({
     fund_name: '', fund_address: '', fund_type: 'tabac', activity_type: '', creation_year: '',
@@ -114,6 +122,39 @@ export default function AcquisitionStudio({ session }: Props) {
 
   const update = (field: string, value: string) =>
     setFormData(prev => ({ ...prev, [field]: value }))
+
+  // ─── Address autocomplete (BAN) ───────────────────────────────────────────
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      const q = formData.fund_address
+      if (q.length > 3) {
+        setIsSearchingAddr(true)
+        try {
+          const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`, { signal: controller.signal })
+          if (res.ok) {
+            const data = await res.json()
+            setAddrSuggestions(data.features)
+            setShowAddrSuggestions(data.features.length > 0)
+          }
+        } catch (e: any) {
+          if (e.name !== 'AbortError') console.error(e)
+        } finally {
+          if (!controller.signal.aborted) setIsSearchingAddr(false)
+        }
+      } else {
+        setAddrSuggestions([])
+        setShowAddrSuggestions(false)
+      }
+    }, 300)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [formData.fund_address])
+
+  const selectAddress = (feature: AddressFeature) => {
+    update('fund_address', feature.properties.label)
+    setAddrSuggestions([])
+    setShowAddrSuggestions(false)
+  }
 
   const isTabac = formData.fund_type === 'tabac'
   const caProdTotal = n(formData.ca_prod_tabac) + n(formData.ca_prod_presse) + n(formData.ca_prod_fdj) + n(formData.ca_prod_pmu) + n(formData.ca_prod_compte_nickel) + n(formData.ca_prod_autres)
@@ -534,11 +575,36 @@ Retourne ce JSON exact (complète chaque champ avec des valeurs cohérentes et r
                   onChange={e => update('fund_name', e.target.value)}
                   placeholder="Ex: Tabac-Presse du Centre" />
               </Field>
-              <Field label="Adresse">
-                <input className={inputClass} style={SANS} value={formData.fund_address}
-                  onChange={e => update('fund_address', e.target.value)}
-                  placeholder="1 Place de la Comédie, 34000 Montpellier" />
-              </Field>
+              <div className="relative z-20">
+                <label className={labelClass} style={SANS}>Adresse</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9E9E9E]">
+                    {isSearchingAddr ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                  </div>
+                  <input
+                    className={`${inputClass} pl-9`} style={SANS}
+                    value={formData.fund_address}
+                    onChange={e => { update('fund_address', e.target.value); if (!e.target.value) setShowAddrSuggestions(false) }}
+                    autoComplete="off"
+                    placeholder="1 Place de la Comédie, 34000 Montpellier"
+                  />
+                </div>
+                {showAddrSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-[#E8E6DF] overflow-hidden z-50">
+                    {addrSuggestions.map((s, i) => (
+                      <button key={i} onClick={() => selectAddress(s)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-[#F0EFE9] flex items-center gap-2.5 transition-colors border-b border-[#F0EFE9] last:border-0 cursor-pointer"
+                        style={SANS}>
+                        <MapPin size={13} className="text-[#3BAF7E] flex-shrink-0" />
+                        <span className="text-sm text-[#1A1A1A]">{s.properties.label}</span>
+                      </button>
+                    ))}
+                    <div className="px-3 py-1 bg-[#F0EFE9] text-[10px] text-[#9E9E9E] text-center uppercase tracking-wider" style={MONO}>
+                      Base Adresse Nationale
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Type de fonds">
                   <select className={inputClass} style={SANS} value={formData.fund_type}
