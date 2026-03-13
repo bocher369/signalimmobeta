@@ -175,7 +175,10 @@ export default function AcquisitionStudio({ session }: Props) {
     setExtractingBail(true)
     try {
       const arrayBuffer = await pdfFile.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+      const base64 = btoa(binary)
 
       const { data, error } = await supabase.functions.invoke('gemini-generate', {
         body: {
@@ -246,7 +249,10 @@ Si une information est absente ou illisible, mets une chaîne vide "" pour les t
     try {
       const toBase64 = async (f: File) => {
         const ab = await f.arrayBuffer()
-        return btoa(String.fromCharCode(...new Uint8Array(ab)))
+        const bytes2 = new Uint8Array(ab)
+        let bin = ''
+        for (let i = 0; i < bytes2.byteLength; i++) bin += String.fromCharCode(bytes2[i])
+        return btoa(bin)
       }
       const parts: any[] = []
       for (const f of files) {
