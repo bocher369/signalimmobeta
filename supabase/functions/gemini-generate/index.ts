@@ -66,8 +66,8 @@ serve(async (req) => {
   } catch (error: any) {
     console.error("Error:", error.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ geminiError: true, status: 500, detail: error.message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
