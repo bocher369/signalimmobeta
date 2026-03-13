@@ -49,9 +49,18 @@ serve(async (req) => {
     console.log("Gemini status:", geminiResponse.status);
     console.log("Gemini response:", responseText.substring(0, 500));
 
+    // Always return 200 so Supabase client receives data instead of an error.
+    // Wrap error responses so the frontend can inspect them.
+    if (!geminiResponse.ok) {
+      return new Response(
+        JSON.stringify({ geminiError: true, status: geminiResponse.status, detail: responseText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
     return new Response(responseText, {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: geminiResponse.status,
+      status: 200,
     });
 
   } catch (error: any) {

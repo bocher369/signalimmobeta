@@ -216,6 +216,7 @@ Si une information est absente ou illisible, mets une chaîne vide "" pour les t
       if (error) throw new Error(error.message)
 
       const responseData = typeof data === 'string' ? JSON.parse(data) : data
+      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : PDF trop volumineux ou format non supporté.`)
       const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
       const jsonMatch = raw.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('Réponse invalide')
@@ -298,6 +299,7 @@ Si une valeur est absente ou non détectable, mets "0". Mets uniquement des nomb
       if (error) throw new Error(error.message)
 
       const responseData = typeof data === 'string' ? JSON.parse(data) : data
+      if (responseData?.geminiError) throw new Error(`Erreur Gemini (${responseData.status}) : PDFs trop volumineux ou format non supporté.`)
       const raw = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || ''
       const jsonMatch = raw.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('Réponse invalide')
