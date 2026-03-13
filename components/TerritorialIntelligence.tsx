@@ -15,6 +15,13 @@ interface AddressFeature {
   };
 }
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const MONO  = { fontFamily: 'IBM Plex Mono, monospace' }
+const SANS  = { fontFamily: 'DM Sans, sans-serif' }
+const inputClass  = 'w-full bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#3BAF7E] focus:ring-1 focus:ring-[#3BAF7E] transition-colors'
+const labelClass  = 'block text-xs font-medium text-[#6B6B6B] mb-1.5'
+const cardClass   = 'bg-white rounded-2xl p-6 border border-[#E8E6DF]'
+
 const fileToPart = async (file: File) => {
   return new Promise<any>((resolve, reject) => {
     const reader = new FileReader();
@@ -562,13 +569,14 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   // Layout Blocks
   const actionBlock = (
     <div className="mb-6">
-        <button 
+        <button
             onClick={handleGenerateReport}
             disabled={(!address && files.length === 0) || isProcessing}
-            className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
+            style={SANS}
+            className={`w-full py-3 rounded-full font-semibold text-base shadow-lg shadow-[#3BAF7E]/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
             ${(!address && files.length === 0) || isProcessing
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/40'}`}
+                ? 'bg-[#E8E6DF] text-[#9E9E9E] cursor-not-allowed rounded-full'
+                : 'bg-[#3BAF7E] text-white hover:bg-[#2A8F62] hover:shadow-[#3BAF7E]/40'}`}
         >
             {isProcessing ? (
             <>
@@ -588,13 +596,13 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
 
   const addressBlock = (
     <div className="relative mb-6 z-30">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-          {isSearchingAddress ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9E9E9E]">
+          {isSearchingAddress ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
         </div>
-        <input 
-          type="text" 
-          placeholder="Saisissez l'adresse complète (ex: 6 avenue de...)" 
-          className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none font-medium"
+        <input
+          type="text"
+          placeholder="Saisissez l'adresse complète (ex: 6 avenue de...)"
+          className="w-full pl-9 pr-4 bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl py-3 text-sm text-[#1A1A1A] placeholder-[#9E9E9E] focus:outline-none focus:border-[#3BAF7E] focus:ring-1 focus:ring-[#3BAF7E] transition-colors"
           value={address}
           onChange={handleAddressChange}
           autoComplete="off"
@@ -602,20 +610,20 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
         
         {/* Address Autocomplete Dropdown */}
         {showSuggestions && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-[#E8E6DF] overflow-hidden z-50">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
                 onClick={() => selectAddress(suggestion)}
-                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0"
+                className="w-full text-left px-4 py-3 hover:bg-[#F0EFE9] flex items-center gap-3 transition-colors border-b border-[#F0EFE9] last:border-0 cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <div className="text-[#3BAF7E] flex-shrink-0">
                   <MapPin size={14} />
                 </div>
                 <span className="text-gray-700 font-medium text-sm">{suggestion.properties.label}</span>
               </button>
             ))}
-            <div className="px-2 py-1 bg-gray-50 text-[10px] text-gray-400 text-center uppercase tracking-wider">
+            <div className="px-2 py-1 bg-[#F0EFE9] text-[10px] text-[#9E9E9E] text-center uppercase tracking-wider">
               Source: Base Adresse Nationale
             </div>
           </div>
@@ -626,7 +634,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   const instructionsBlock = (
     <div className="mb-6 relative">
       <div className="flex justify-between items-center mb-2 px-1">
-           <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+           <label className="text-xs font-medium text-[#6B6B6B] flex items-center gap-2">
               <PencilLine size={14} /> Notes & Instructions (Optionnel)
            </label>
       </div>
@@ -634,7 +642,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
         value={specificInstructions}
         onChange={(e) => setSpecificInstructions(e.target.value)}
         placeholder="Décrivez le bien pour aider l'analyse (ex: 'Terrain de 500m2', 'Proche future ligne de tramway')..."
-        className={`w-full p-4 pr-4 pb-14 bg-gray-50 border rounded-2xl text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none resize-none min-h-[120px] text-sm leading-relaxed ${isRecording ? 'ring-2 ring-red-100 bg-red-50/10 placeholder-red-300 border-red-200' : 'border-transparent'}`}
+        className={`w-full px-4 pt-3 pb-14 bg-[#F0EFE9] border rounded-xl text-sm text-[#1A1A1A] placeholder-[#9E9E9E] focus:outline-none focus:ring-1 focus:ring-[#3BAF7E] transition-colors resize-none min-h-[120px] leading-relaxed ${isRecording ? 'ring-2 ring-red-100 bg-red-50/10 placeholder-red-300 border-red-200' : 'border-[#E8E6DF] focus:border-[#3BAF7E]'}`}
       />
       
       <div className="absolute bottom-3 right-3 flex items-center gap-3">
@@ -671,7 +679,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
             onClick={() => fileInputRef.current?.click()}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+            className="border-2 border-dashed border-[#E8E6DF] rounded-2xl p-8 text-center hover:border-[#3BAF7E] hover:bg-[#F0EFE9]/50 transition-all cursor-pointer group"
         >
             <input 
             type="file" 
@@ -681,7 +689,7 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
             accept=".jpg,.jpeg,.png,.pdf"
             onChange={handleFileSelect}
             />
-            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-gray-400 group-hover:text-indigo-600 transition-colors">
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-[#9E9E9E] group-hover:text-[#3BAF7E] transition-colors">
             <UploadCloud size={24} />
             </div>
             <p className="text-gray-900 font-medium mb-1">Glissez photos & documents ici</p>
@@ -692,9 +700,9 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
         {files.length > 0 && (
             <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
             {files.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm group/item transition-all hover:shadow-md">
+                <div key={index} className="flex items-center justify-between p-3 bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl group/item transition-all hover:shadow-md">
                 <div className="flex items-center gap-4 overflow-hidden">
-                    <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100 relative ${file.type.includes('pdf') ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-[#E8E6DF] relative ${file.type.includes('pdf') ? 'bg-red-50' : 'bg-[#F0EFE9]'}`}>
                     {file.type.startsWith('image/') ? (
                         <img 
                             src={URL.createObjectURL(file)} 
@@ -724,17 +732,24 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-      
+    <div className="min-h-full bg-[#F0EFE9]">
+      {/* Header de page */}
+      <div className="px-8 pt-8 pb-0">
+        <p className="text-xs tracking-widest text-[#9E9E9E] uppercase" style={MONO}>INTELLIGENCE TERRITORIALE</p>
+        <h1 className="font-bold text-3xl text-[#1A1A1A] mt-1" style={SANS}>Rapport d'intelligence</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1" style={SANS}>Données IGN · Cadastre · Analyse Gemini</p>
+      </div>
+      <div className="px-8 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100%-120px)]">
+
       {/* LEFT COLUMN: INPUT */}
       <div className="space-y-6 animate-in slide-in-from-left-4 duration-500">
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative z-20">
+        <div className="bg-white p-6 rounded-2xl border border-[#E8E6DF] relative z-20">
           
           {actionBlock}
 
-          <h2 className="text-xl font-semibold mb-6 text-gray-900">
+          <p className="text-xs text-[#9E9E9E] uppercase tracking-wider mb-4" style={MONO}>
             Données du bien
-          </h2>
+          </p>
 
           {addressBlock}
           {instructionsBlock}
@@ -746,51 +761,51 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
       {/* RIGHT COLUMN: OUTPUT */}
       <div className="relative h-full min-h-[500px] animate-in slide-in-from-right-4 duration-500 delay-100">
         {!reportResult ? (
-          <div className={`h-full bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center text-center p-8 opacity-50 ${isProcessing ? 'justify-start pt-20' : 'justify-center'}`}>
+          <div className={`h-full bg-white rounded-2xl border border-[#E8E6DF] flex flex-col items-center text-center p-8 opacity-50 ${isProcessing ? 'justify-start pt-20' : 'justify-center'}`}>
              {isProcessing ? (
                  <div className="flex flex-col items-center gap-4">
                      <div className="relative">
-                        <div className="w-20 h-20 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
+                        <div className="w-20 h-20 rounded-full border-4 border-[#E8E6DF] border-t-[#3BAF7E] animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center text-[#3BAF7E]">
                             <TrendingUp size={24} />
                         </div>
                      </div>
                      <div>
-                        <h3 className="text-xl font-medium text-gray-800">
+                        <h3 className="text-xl font-medium text-[#1A1A1A]">
                             {address.toLowerCase().includes('terrain') ? 'Consultation du Cadastre' : 'Recherche de données'}
                         </h3>
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-[#9E9E9E] text-sm mt-1">
                              {address.toLowerCase().includes('terrain') ? 'Vérification de la parcelle et du PLU...' : 'Interrogation des bases de données...'}
                         </p>
                      </div>
                  </div>
              ) : (
                  <>
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">
+                    <div className="w-20 h-20 bg-[#F0EFE9] rounded-full flex items-center justify-center text-[#9E9E9E] mb-6">
                         <TrendingUp size={40} />
                     </div>
-                    <h3 className="text-xl font-medium text-gray-400 mb-2">En attente de données</h3>
-                    <p className="text-gray-400 max-w-xs">Remplissez les informations à gauche pour lancer le rapport.</p>
+                    <h3 className="text-xl font-medium text-[#9E9E9E] mb-2">En attente de données</h3>
+                    <p className="text-[#9E9E9E] max-w-xs">Remplissez les informations à gauche pour lancer le rapport.</p>
                  </>
              )}
           </div>
         ) : (
-            <div className="h-full flex flex-col bg-white rounded-3xl border border-gray-100 shadow-xl shadow-indigo-900/5 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between">
-                     <div className="flex items-center gap-2 text-indigo-800 font-semibold">
+            <div className="h-full flex flex-col bg-white rounded-2xl border border-[#E8E6DF] shadow-xl shadow-[#0A1628]/5 overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#E8E6DF] bg-white flex items-center justify-between">
+                     <div className="flex items-center gap-2 text-[#1A1A1A] font-semibold">
                          <FileText size={20} /> Rapport d'Intelligence
                      </div>
                      <div className="flex items-center gap-2">
-                         <button 
+                         <button
                             onClick={handleCopy}
-                            className="p-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                            className="p-2 text-[#3BAF7E] bg-[#F0EFE9] rounded-lg hover:bg-[#E8E6DF] transition-colors"
                             title="Copier le texte"
                          >
                              {isCopied ? <Check size={18} /> : <Copy size={18} />}
                          </button>
-                         <button 
+                         <button
                             onClick={handleDownloadPDF}
-                            className="flex items-center gap-2 text-sm font-medium text-white bg-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                            className="flex items-center gap-2 text-sm font-medium text-white bg-[#0A1628] px-4 py-2 rounded-lg hover:bg-[#1a2a42] transition-colors shadow-sm shadow-[#0A1628]/20"
                          >
                              <Download size={16} />
                              Télécharger le rapport .pdf
@@ -801,17 +816,18 @@ export const TerritorialIntelligence: React.FC<TerritorialIntelligenceProps> = (
                     <div ref={reportRef} className="bg-white p-8 min-h-full">
                         <div className="mb-6 border-b pb-4">
                             <h1 className="text-2xl font-bold text-gray-900">Rapport d'Intelligence Territoriale</h1>
-                            <p className="text-gray-500 mt-1">Adresse : {address}</p>
-                            <p className="text-gray-400 text-sm">Généré le {new Date().toLocaleDateString()}</p>
+                            <p className="text-[#9E9E9E] mt-1">Adresse : {address}</p>
+                            <p className="text-[#9E9E9E] text-sm">Généré le {new Date().toLocaleDateString()}</p>
                         </div>
-                        <article 
-                            className="prose prose-indigo max-w-none"
+                        <article
+                            className="prose max-w-none"
                             dangerouslySetInnerHTML={{ __html: parse(normalizeReport(reportResult)) as string }}
                         />
                     </div>
                 </div>
             </div>
         )}
+      </div>
       </div>
     </div>
   );

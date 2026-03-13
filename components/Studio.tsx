@@ -8,6 +8,13 @@ import {
 } from 'lucide-react';
 import { GeneratedContent, OutputChannel, ProcessingStep, Property } from '../types';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const MONO  = { fontFamily: 'IBM Plex Mono, monospace' }
+const SANS  = { fontFamily: 'DM Sans, sans-serif' }
+const inputClass  = 'w-full bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#3BAF7E] focus:ring-1 focus:ring-[#3BAF7E] transition-colors'
+const labelClass  = 'block text-xs font-medium text-[#6B6B6B] mb-1.5'
+const cardClass   = 'bg-white rounded-2xl p-6 border border-[#E8E6DF]'
+
 // Tooltip Component
 const InfoTooltip = ({ text, align = 'center' }: { text: string, align?: 'center' | 'left' | 'right' }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -27,7 +34,7 @@ const InfoTooltip = ({ text, align = 'center' }: { text: string, align?: 'center
     <div className="relative inline-block ml-2 group">
       <Info 
         size={14} 
-        className="text-gray-400 hover:text-brand-600 cursor-help transition-colors"
+        className="text-gray-400 hover:text-[#3BAF7E] cursor-help transition-colors"
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
       />
@@ -667,7 +674,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
   const instructionsBlock = (
     <div className="mb-6 relative">
       <div className="flex justify-between items-center mb-2 px-1">
-           <label className={`text-sm font-medium ${hasResult ? 'text-brand-600 flex items-center gap-2' : 'text-gray-700'}`}>
+           <label className={`block text-xs font-medium mb-1.5 ${hasResult ? 'text-[#3BAF7E] flex items-center gap-2' : 'text-[#6B6B6B]'}`} style={SANS}>
               {hasResult ? <><PencilLine size={14} /> Instructions de retouche</> : 'Notes & Instructions'}
            </label>
       </div>
@@ -675,7 +682,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder={hasResult ? "Ajoutez ici vos instructions pour modifier l'annonce (ex: 'Rends le ton plus dynamique', 'Ajoute que le métro est à 2 min', 'Supprime la mention des travaux')..." : "Décrivez ici le bien (ex: cuisine américaine, calme sur cour...) ou utilisez le micro."}
-        className={`w-full p-4 pr-4 pb-14 bg-gray-50 border rounded-2xl text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all outline-none resize-none min-h-[120px] text-sm leading-relaxed ${isRecording ? 'ring-2 ring-red-100 bg-red-50/10 placeholder-red-300 border-red-200' : 'border-transparent'} ${hasResult ? 'border-brand-200 bg-brand-50/20' : ''}`}
+        className={`w-full bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl px-4 py-3 pb-14 text-sm text-[#1A1A1A] placeholder-[#9E9E9E] focus:outline-none focus:border-[#3BAF7E] focus:ring-1 focus:ring-[#3BAF7E] transition-colors resize-none min-h-[120px] leading-relaxed ${isRecording ? 'ring-1 ring-red-300 border-red-200' : ''} ${hasResult ? 'border-[#3BAF7E]/30' : ''}`}
       />
       
       <div className="absolute bottom-3 right-3 flex items-center gap-3">
@@ -711,10 +718,11 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
         <button 
           onClick={handleGenerate}
           disabled={((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult}
-          className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-brand-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3 relative z-10
+          style={SANS}
+          className={`w-full py-3 rounded-full font-semibold text-base shadow-lg shadow-[#3BAF7E]/20 transition-all active:scale-95 flex items-center justify-center gap-3 relative z-10
             ${((!address && files.length === 0 && !description) || isProcessing) && !initialProperty && !hasResult
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-              : 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow-brand-500/40'}`}
+              ? 'bg-[#E8E6DF] text-[#9E9E9E] cursor-not-allowed'
+              : 'bg-[#3BAF7E] text-white hover:bg-[#2A8F62] hover:shadow-[#3BAF7E]/40'}`}
         >
           {isProcessing ? (
             <>
@@ -735,13 +743,13 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
 
   const addressBlock = (
     <div className="relative mb-6 z-50">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-          {isSearchingAddress ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          {isSearchingAddress ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
         </div>
-        <input 
-          type="text" 
-          placeholder="Saisissez l'adresse complète (ex: 6 avenue de...)" 
-          className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all outline-none font-medium"
+        <input
+          type="text"
+          placeholder="Saisissez l'adresse complète (ex: 6 avenue de...)"
+          className="w-full pl-9 pr-4 bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#9E9E9E] focus:outline-none focus:border-[#3BAF7E] focus:ring-1 focus:ring-[#3BAF7E] transition-colors"
           value={address}
           onChange={handleAddressChange}
           autoComplete="off"
@@ -749,20 +757,18 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
         
         {/* Address Autocomplete Dropdown */}
         {showSuggestions && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-[#E8E6DF] overflow-hidden z-50">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
                 onClick={() => selectAddress(suggestion)}
-                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0"
+                className="w-full text-left px-3 py-2.5 hover:bg-[#F0EFE9] flex items-center gap-2.5 transition-colors border-b border-[#F0EFE9] last:border-0 cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 flex-shrink-0">
-                  <MapPin size={14} />
-                </div>
+                <MapPin size={14} className="text-[#3BAF7E] flex-shrink-0" />
                 <span className="text-gray-700 font-medium text-sm">{suggestion}</span>
               </button>
             ))}
-            <div className="px-2 py-1 bg-gray-50 text-[10px] text-gray-400 text-center uppercase tracking-wider">
+            <div className="px-3 py-1 bg-[#F0EFE9] text-[10px] text-[#9E9E9E] text-center uppercase tracking-wider">
               Source: Base Adresse Nationale
             </div>
           </div>
@@ -776,7 +782,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
             onClick={() => fileInputRef.current?.click()}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-brand-300 hover:bg-brand-50/30 transition-all cursor-pointer group"
+            className="border-2 border-dashed border-[#E8E6DF] rounded-2xl p-8 text-center hover:border-[#3BAF7E] hover:bg-[#F0EFE9]/50 transition-all cursor-pointer group"
         >
             <input 
             type="file" 
@@ -786,20 +792,20 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
             accept=".jpg,.jpeg,.png,.pdf"
             onChange={handleFileSelect}
             />
-            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-gray-400 group-hover:text-brand-600 transition-colors">
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-[#9E9E9E] group-hover:text-[#3BAF7E] transition-colors">
             <UploadCloud size={24} />
             </div>
-            <p className="text-gray-900 font-medium mb-1">Glissez photos & documents ici</p>
-            <p className="text-sm text-gray-400">JPG, PDF, PNG acceptés</p>
+            <p className="text-[#1A1A1A] font-medium mb-1">Glissez photos & documents ici</p>
+            <p className="text-sm text-[#9E9E9E]">JPG, PDF, PNG acceptés</p>
         </div>
 
         {/* File List */}
         {files.length > 0 && (
             <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
             {files.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm group/item transition-all hover:shadow-md">
+                <div key={index} className="flex items-center justify-between p-3 bg-[#F0EFE9] border border-[#E8E6DF] rounded-xl group/item transition-all hover:border-[#3BAF7E]/30">
                 <div className="flex items-center gap-4 overflow-hidden">
-                    <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100 relative ${file.type.includes('pdf') ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-[#E8E6DF] relative ${file.type.includes('pdf') ? 'bg-red-50' : 'bg-white'}`}>
                     {file.type.startsWith('image/') ? (
                         <img 
                             src={URL.createObjectURL(file)} 
@@ -811,13 +817,13 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
                     )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">{file.name}</span>
-                        <span className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <span className="text-sm font-medium text-[#1A1A1A] truncate max-w-[200px]">{file.name}</span>
+                        <span className="text-xs text-[#9E9E9E]">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); removeFile(index); }} 
-                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                    className="p-2 hover:bg-[#E8E6DF] rounded-lg text-[#9E9E9E] hover:text-red-500 transition-colors"
                 >
                     <X size={18} />
                 </button>
@@ -829,19 +835,26 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-      
+    <div className="min-h-full bg-[#F0EFE9]">
+      {/* Header de page */}
+      <div className="px-8 pt-8 pb-0">
+        <p className="text-xs tracking-widest text-[#9E9E9E] uppercase" style={MONO}>STUDIO ANNONCES</p>
+        <h1 className="font-bold text-3xl text-[#1A1A1A] mt-1" style={SANS}>Générateur d'annonces GEO</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1" style={SANS}>Analyse Gemini · Score GEO · Publication multi-canal</p>
+      </div>
+      <div className="px-8 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100%-120px)]">
+
       {/* LEFT COLUMN: INPUT */}
       <div className="space-y-6 animate-in slide-in-from-left-4 duration-500">
         
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative z-20">
+        <div className="bg-white rounded-2xl p-6 border border-[#E8E6DF] relative z-20">
           
           {/* Action Block moved to top */}
           {actionBlock}
 
-          <h2 className="text-xl font-semibold mb-6 text-gray-900">
+          <p className="text-xs text-[#9E9E9E] uppercase tracking-wider mb-4" style={MONO}>
             Données du bien
-          </h2>
+          </p>
           
           {hasResult ? (
             <>
@@ -867,29 +880,29 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
         
         {/* State: IDLE */}
         {!isProcessing && !hasResult && (
-          <div className="h-full bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center p-8 opacity-50">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">
+          <div className="h-full bg-white rounded-2xl border border-[#E8E6DF] flex flex-col items-center justify-center text-center p-8 opacity-60">
+            <div className="w-20 h-20 bg-[#F0EFE9] rounded-full flex items-center justify-center text-[#9E9E9E] mb-6">
               <UploadCloud size={40} />
             </div>
-            <h3 className="text-xl font-medium text-gray-400 mb-2">En attente de données</h3>
-            <p className="text-gray-400 max-w-xs">Remplissez les informations à gauche pour lancer le moteur GEO.</p>
+            <h3 className="text-xl font-medium text-[#9E9E9E] mb-2">En attente de données</h3>
+            <p className="text-[#9E9E9E] max-w-xs">Remplissez les informations à gauche pour lancer le moteur GEO.</p>
           </div>
         )}
 
         {/* State: PROCESSING */}
         {isProcessing && (
-          <div className="h-full bg-white rounded-3xl border border-gray-100 shadow-sm p-8 flex flex-col items-center justify-start pt-24">
+          <div className="h-full bg-white rounded-2xl border border-[#E8E6DF] p-8 flex flex-col items-center justify-start pt-24">
              <div className="w-full max-w-md space-y-8">
                 {/* Header Title & Progress */}
                 <div className="text-center space-y-4">
-                  <h3 className="text-2xl font-semibold text-gray-900 animate-pulse">
+                  <h3 className="text-2xl font-semibold text-gray-900 animate-pulse" style={SANS}>
                       {hasResult ? 'Mise à jour de l\'annonce...' : 'Construction de l\'annonce...'}
                   </h3>
                   
                   {/* Gauge / Progress Bar */}
-                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden shadow-inner">
-                    <div 
-                        className="bg-brand-600 h-2.5 rounded-full transition-all duration-700 ease-out" 
+                  <div className="w-full bg-[#E8E6DF] rounded-full h-2.5 overflow-hidden">
+                    <div
+                        className="bg-[#3BAF7E] h-2.5 rounded-full transition-all duration-700 ease-out"
                         style={{ width: `${progress}%` }}
                     ></div>
                   </div>
@@ -899,14 +912,14 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
                 </div>
 
                 {/* Steps List */}
-                <div className="space-y-4 pt-6 border-t border-gray-50">
+                <div className="space-y-4 pt-6 border-t border-[#E8E6DF]">
                   {steps.map((step) => (
                     <div key={step.id} className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 
-                        ${step.completed ? 'bg-green-100 text-green-600 scale-110' : 'bg-gray-100 text-gray-300'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500
+                        ${step.completed ? 'bg-[#3BAF7E] text-white scale-110' : 'bg-[#F0EFE9] text-[#9E9E9E]'}`}>
                         {step.completed ? <CheckCircle2 size={18} /> : <div className="w-2 h-2 bg-current rounded-full" />}
                       </div>
-                      <span className={`font-medium transition-colors duration-300 ${step.completed ? 'text-gray-900' : 'text-gray-400'}`}>
+                      <span className={`font-medium transition-colors duration-300 ${step.completed ? 'text-[#1A1A1A]' : 'text-[#9E9E9E]'}`}>
                         {step.label}
                       </span>
                     </div>
@@ -918,32 +931,32 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
 
         {/* State: RESULT */}
         {hasResult && (
-          <div className="h-full flex flex-col bg-white rounded-3xl border border-gray-100 shadow-xl shadow-brand-900/5">
+          <div className="h-full flex flex-col bg-white rounded-2xl border border-[#E8E6DF] shadow-xl shadow-[#0A1628]/5">
             
             {/* Toolbar */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 rounded-t-3xl">
-              <div className="flex bg-gray-100/50 p-1 rounded-xl overflow-x-auto">
+            <div className="px-6 py-4 border-b border-[#E8E6DF] bg-white flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 rounded-t-2xl">
+              <div className="flex bg-[#F0EFE9] p-1 rounded-xl overflow-x-auto">
                 <button 
                   onClick={() => setActiveChannel('portal')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'portal' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'portal' ? 'bg-white text-[#3BAF7E] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                 >
                   <Home size={16} /> Portail
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveChannel('social')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'social' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'social' ? 'bg-white text-pink-600 shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                 >
                   <Instagram size={16} /> Social
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveChannel('email')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'email' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'email' ? 'bg-white text-purple-600 shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                 >
                   <Mail size={16} /> Email
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveChannel('score')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'score' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${activeChannel === 'score' ? 'bg-white text-[#3BAF7E] shadow-sm' : 'text-[#9E9E9E] hover:text-[#6B6B6B]'}`}
                 >
                   <BarChart3 size={16} /> Score GEO
                 </button>
@@ -953,7 +966,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
                  {savedProperty && onNavigateToIntelligence && (
                    <button
                      onClick={() => onNavigateToIntelligence({ ...savedProperty, address })}
-                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
+                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#3BAF7E] bg-[#F0EFE9] rounded-lg hover:bg-[#E8E6DF] transition-colors border border-[#E8E6DF]"
                    >
                      <Globe size={14} /> Analyser le territoire
                    </button>
@@ -962,7 +975,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
                    <>
                      <button
                       onClick={handleCopy}
-                      className={`p-2 rounded-lg transition-all duration-200 ${isCopied ? 'text-green-600 bg-green-50 scale-110' : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'}`}
+                      className={`p-2 rounded-lg transition-all duration-200 ${isCopied ? 'text-[#3BAF7E] bg-[#F0EFE9] scale-110' : 'text-gray-400 hover:text-[#3BAF7E] hover:bg-[#F0EFE9]'}`}
                       title="Copier le texte"
                      >
                       {isCopied ? <Check size={18} /> : <Copy size={18} />}
@@ -970,7 +983,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
                      
                      <button 
                         onClick={handlePrint}
-                        className="p-2 rounded-lg transition-colors text-gray-400 hover:text-brand-600 hover:bg-brand-50" 
+                        className="p-2 rounded-lg transition-colors text-gray-400 hover:text-[#3BAF7E] hover:bg-[#F0EFE9]" 
                         title="Imprimer"
                      >
                         <Printer size={18} />
@@ -985,7 +998,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
               {activeChannel === 'score' ? (
                 <div className="space-y-8 max-w-2xl mx-auto">
                     {/* Total Score */}
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-[#E8E6DF] text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
                         <h3 className="text-gray-500 font-medium mb-2 uppercase tracking-wide text-sm">Score IA & Visibilité</h3>
                         <div className="flex items-center justify-center gap-4">
@@ -999,70 +1012,70 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
 
                     {/* Criteria Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 rounded-2xl border border-[#E8E6DF] shadow-sm">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center">
                                     <span className="text-gray-600 font-medium">Immersion & Récit</span>
                                     <InfoTooltip text="Ce score évalue votre capacité à faire vivre le bien à travers votre texte. Pour l'augmenter, aidez le futur acquéreur à se projeter en décrivant l'ambiance, la luminosité naturelle, la fluidité de l'agencement et les atouts de la vie de quartier." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.experience || 0}/100</span>
+                                <span className="text-[#3BAF7E] font-bold">{generatedContent.score?.criteria.experience || 0}/100</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.experience || 0}%` }}></div>
+                            <div className="w-full bg-[#E8E6DF] rounded-full h-2">
+                                <div className="bg-[#3BAF7E] h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.experience || 0}%` }}></div>
                             </div>
                         </div>
-                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 rounded-2xl border border-[#E8E6DF] shadow-sm">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center">
                                     <span className="text-gray-600 font-medium">Précision technique</span>
                                     <InfoTooltip align="right" text="Ce score mesure le niveau de détail factuel de votre annonce. Valorisez votre connaissance du bien en précisant des éléments concrets : nature des matériaux, type de chauffage, année de construction ou détails sur les derniers travaux réalisés." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.expertise || 0}/100</span>
+                                <span className="text-[#3BAF7E] font-bold">{generatedContent.score?.criteria.expertise || 0}/100</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.expertise || 0}%` }}></div>
+                            <div className="w-full bg-[#E8E6DF] rounded-full h-2">
+                                <div className="bg-[#3BAF7E] h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.expertise || 0}%` }}></div>
                             </div>
                         </div>
-                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 rounded-2xl border border-[#E8E6DF] shadow-sm">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center">
                                     <span className="text-gray-600 font-medium">Persuasion et qualité de service</span>
                                     <InfoTooltip text="Ce score reflète la force de persuasion de votre annonce. Pour l'améliorer, mettez en avant la rareté du bien sur le marché (ex: dernier étage, vue dégagée, absence de vis-à-vis) et soulignez la qualité de votre mandat ou de vos services." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.authority || 0}/100</span>
+                                <span className="text-[#3BAF7E] font-bold">{generatedContent.score?.criteria.authority || 0}/100</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.authority || 0}%` }}></div>
+                            <div className="w-full bg-[#E8E6DF] rounded-full h-2">
+                                <div className="bg-[#3BAF7E] h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.authority || 0}%` }}></div>
                             </div>
                         </div>
-                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 rounded-2xl border border-[#E8E6DF] shadow-sm">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center">
                                     <span className="text-gray-600 font-medium">Transparence et réassurance</span>
                                     <InfoTooltip align="right" text="Ce score indique si votre annonce est complète et sécurisante pour l'acheteur. Assurez-vous de la présence de toutes les informations légales obligatoires (DPE, loi ALUR, montant précis des charges, copropriété) pour instaurer une confiance immédiate." />
                                 </div>
-                                <span className="text-brand-600 font-bold">{generatedContent.score?.criteria.trust || 0}/100</span>
+                                <span className="text-[#3BAF7E] font-bold">{generatedContent.score?.criteria.trust || 0}/100</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className="bg-brand-500 h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.trust || 0}%` }}></div>
+                            <div className="w-full bg-[#E8E6DF] rounded-full h-2">
+                                <div className="bg-[#3BAF7E] h-2 rounded-full" style={{ width: `${generatedContent.score?.criteria.trust || 0}%` }}></div>
                             </div>
                         </div>
                     </div>
 
                     {/* Tips Section */}
-                    <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-100">
-                        <h4 className="flex items-center gap-2 font-semibold text-indigo-900 mb-4">
+                    <div className="bg-[#F0EFE9] rounded-2xl p-6 border border-[#E8E6DF]">
+                        <h4 className="flex items-center gap-2 font-semibold text-[#1A1A1A] mb-4">
                             <TrendingUp size={20} />
                             Leviers d'amélioration
                         </h4>
                         <ul className="space-y-3">
                             {generatedContent.score?.tips?.map((tip, index) => (
-                                <li key={index} className="flex items-start gap-3 text-indigo-800 text-sm leading-relaxed">
-                                    <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0 text-indigo-500" />
+                                <li key={index} className="flex items-start gap-3 text-[#1A1A1A] text-sm leading-relaxed">
+                                    <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0 text-[#3BAF7E]" />
                                     {tip}
                                 </li>
                             )) || (
-                                <li className="text-indigo-400 italic text-sm">Aucun conseil disponible pour le moment.</li>
+                                <li className="text-[#9E9E9E] italic text-sm">Aucun conseil disponible pour le moment.</li>
                             )}
                         </ul>
                     </div>
@@ -1070,19 +1083,19 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
               ) : (
                 <div className="max-w-none prose prose-gray prose-p:text-gray-600 prose-headings:font-semibold prose-headings:text-gray-800">
                    {/* Memory Badge */}
-                   <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 mb-6 flex items-start gap-3">
+                   <div className="bg-[#F0EFE9] border border-[#E8E6DF] rounded-lg p-3 mb-6 flex items-start gap-3">
                       <div className="mt-0.5">
                         {lastInstruction ? (
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-[#3BAF7E] rounded-full animate-pulse"></div>
                         ) : (
-                          <BrainCircuit size={16} className="text-indigo-400" />
+                          <BrainCircuit size={16} className="text-[#9E9E9E]" />
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-indigo-800 uppercase tracking-wide mb-1">Mémoire Active</p>
-                        <p className="text-sm text-indigo-700 leading-relaxed italic">
-                          {lastInstruction 
-                            ? `« ${lastInstruction} »` 
+                        <p className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wide mb-1">Mémoire Active</p>
+                        <p className="text-sm text-[#6B6B6B] leading-relaxed italic">
+                          {lastInstruction
+                            ? `« ${lastInstruction} »`
                             : "En attente de vos instructions de personnalisation (ex: 'Ton plus chaleureux', 'Ajoute le parking')..."}
                         </p>
                       </div>
@@ -1099,12 +1112,12 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
             </div>
             
             {/* Footer Score */}
-            <div className="bg-white px-6 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 rounded-b-3xl">
+            <div className="bg-white px-6 py-3 border-t border-[#E8E6DF] flex items-center justify-between text-xs text-gray-400 rounded-b-2xl">
               <span>Généré en 4.2s</span>
               <div className="flex items-center gap-2">
-                <span className="font-medium text-green-600">GEO Score: {generatedContent.score?.total || 94}/100</span>
-                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="w-full h-full bg-green-500 rounded-full" style={{ width: `${generatedContent.score?.total || 94}%` }}></div>
+                <span className="font-medium text-[#3BAF7E]">GEO Score: {generatedContent.score?.total || 94}/100</span>
+                <div className="w-16 h-1.5 bg-[#E8E6DF] rounded-full overflow-hidden">
+                  <div className="w-full h-full bg-[#3BAF7E] rounded-full" style={{ width: `${generatedContent.score?.total || 94}%` }}></div>
                 </div>
               </div>
             </div>
@@ -1112,6 +1125,7 @@ export const Studio: React.FC<StudioProps> = ({ onNewProperty, initialProperty, 
           </div>
         )}
 
+      </div>
       </div>
     </div>
   );
